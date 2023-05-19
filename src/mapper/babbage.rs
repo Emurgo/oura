@@ -1,14 +1,13 @@
+use std::collections::HashMap;
 use pallas::codec::utils::KeepRaw;
 
-use pallas::ledger::primitives::babbage::{
-    AuxiliaryData, MintedBlock, MintedDatumOption, MintedPostAlonzoTransactionOutput,
-    MintedTransactionBody, MintedTransactionOutput, MintedWitnessSet, NetworkId,
-};
+use pallas::ledger::primitives::babbage::{AuxiliaryData, CostMdls, Language, MintedBlock, MintedDatumOption, MintedPostAlonzoTransactionOutput, MintedTransactionBody, MintedTransactionOutput, MintedWitnessSet, NetworkId, ProtocolParamUpdate, Update};
 
 use pallas::crypto::hash::Hash;
 use pallas::ledger::traverse::OriginalHash;
+use serde_json::json;
 
-use crate::model::{BlockRecord, Era, TransactionRecord};
+use crate::model::{BlockRecord, CostModelRecord, CostModelsRecord, Era, LanguageVersionRecord, ProtocolParamUpdateRecord, TransactionRecord, UpdateRecord};
 use crate::utils::time::TimeProvider;
 use crate::{
     model::{EventContext, EventData},
@@ -65,14 +64,37 @@ impl EventWriter {
             }
         }
 
+        if let Some(certs) = &body.certificates {
+            let certs = self.collect_certificate_records(certs);
+            record.certificate_count = certs.len();
+
+            if self.config.include_transaction_details {
+                record.certs = certs.into();
+            }
+        }
+
         // Add Collateral Stuff
         let collateral_inputs = &body.collateral.as_deref();
         record.collateral_input_count = collateral_inputs.iter().count();
         record.has_collateral_output = body.collateral_return.is_some();
 
+        if let Some(update) = &body.update {
+            if self.config.include_transaction_details {
+                record.update = Some(self.to_babbage_update_record(update));
+            }
+        }
+
+        if let Some(req_signers) = &body.required_signers {
+            let req_signers = self.collect_required_signers_records(req_signers)?;
+            record.required_signers_count = req_signers.len();
+
+            if self.config.include_transaction_details {
+                record.required_signers = Some(req_signers);
+            }
+        }
+
         // TODO
         // TransactionBodyComponent::ScriptDataHash(_)
-        // TransactionBodyComponent::RequiredSigners(_)
         // TransactionBodyComponent::AuxiliaryDataHash(_)
 
         if self.config.include_transaction_details {
@@ -359,6 +381,78 @@ impl EventWriter {
         }
 
         Ok(())
+    }
+
+    pub fn to_babbage_cost_models_record(&self, cost_models: &Option<CostMdls>) -> Option<CostModelsRecord> {
+        match cost_models {
+            Some(cost_models) => {
+                let mut cost_models_record = HashMap::new();
+                if let Some(cost_model_v1) = &cost_models.plutus_v1 {
+                    let language_version_record = LanguageVersionRecord::PlutusV1;
+                    let cost_model_record = CostModelRecord(cost_model_v1.clone());
+                    cost_models_record.insert(language_version_record, cost_model_record);
+                }
+                if let Some(cost_model_v2) = &cost_models.plutus_v2 {
+                    let language_version_record = LanguageVersionRecord::PlutusV2;
+                    let cost_model_record = CostModelRecord(cost_model_v2.clone());
+                    cost_models_record.insert(language_version_record, cost_model_record);
+                }
+
+                Some(CostModelsRecord(cost_models_record))
+            },
+            None => None,
+        }
+    }
+
+    pub fn to_babbage_language_version_record(&self, language_version: &Language) -> LanguageVersionRecord {
+        match language_version {
+            Language::PlutusV1 => LanguageVersionRecord::PlutusV1,
+            Language::PlutusV2 => LanguageVersionRecord::PlutusV2,
+        }
+    }
+
+    pub fn to_babbage_protocol_update_record(&self, update: &ProtocolParamUpdate) -> ProtocolParamUpdateRecord {
+        ProtocolParamUpdateRecord {
+            minfee_a: update.minfee_a,
+            minfee_b: update.minfee_b,
+            max_block_body_size: update.max_block_body_size,
+            max_transaction_size: update.max_transaction_size,
+            max_block_header_size: update.max_block_header_size,
+            key_deposit: update.key_deposit,
+            pool_deposit: update.pool_deposit,
+            maximum_epoch: update.maximum_epoch,
+            desired_number_of_stake_pools: update.desired_number_of_stake_pools,
+            pool_pledge_influence: self.to_rational_number_record_option(&update.pool_pledge_influence),
+            expansion_rate: self.to_unit_interval_record(&update.expansion_rate),
+            treasury_growth_rate: self.to_unit_interval_record(&update.treasury_growth_rate),
+            decentralization_constant: None,
+            extra_entropy: None,
+            protocol_version: update.protocol_version,
+            min_pool_cost: update.min_pool_cost,
+            ada_per_utxo_byte: update.ada_per_utxo_byte,
+            cost_models_for_script_languages: self.to_babbage_cost_models_record(&update.cost_models_for_script_languages),
+            execution_costs: match &update.execution_costs {
+                Some(execution_costs) => Some(json!(execution_costs)),
+                None => None
+            },
+            max_tx_ex_units: self.to_ex_units_record(&update.max_tx_ex_units),
+            max_block_ex_units: self.to_ex_units_record(&update.max_block_ex_units),
+            max_value_size: update.max_value_size,
+            collateral_percentage: update.collateral_percentage,
+            max_collateral_inputs: update.max_collateral_inputs,
+        }
+    }
+
+    pub fn to_babbage_update_record(&self, update: &Update) -> UpdateRecord {
+        let mut updates = HashMap::new();
+        for update in update.proposed_protocol_parameter_updates.clone().to_vec() {
+            updates.insert(update.0.to_hex(), self.to_babbage_protocol_update_record(&update.1));
+        }
+
+        UpdateRecord{
+            proposed_protocol_parameter_updates: updates,
+            epoch: update.epoch,
+        }
     }
 
     /// Mapper entry-point for decoded Babbage blocks

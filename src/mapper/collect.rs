@@ -14,6 +14,7 @@ use pallas::{
         traverse::OriginalHash,
     },
 };
+use pallas::ledger::primitives::alonzo::{Certificate, RequiredSigners};
 
 use crate::{
     model::{
@@ -23,6 +24,7 @@ use crate::{
     },
     Error,
 };
+use crate::model::{CertificateRecord, RequiredSignerRecord};
 
 use super::{map::ToHex, EventWriter};
 
@@ -88,6 +90,16 @@ impl EventWriter {
                     .iter()
                     .map(|(asset, amount)| self.to_mint_record(policy, asset, *amount))
             })
+            .collect()
+    }
+
+    pub fn collect_certificate_records(
+        &self,
+        certificates: &Vec<Certificate>,
+    ) -> Vec<CertificateRecord> {
+        certificates
+            .iter()
+            .map(|cert| self.to_certificate_record(cert))
             .collect()
     }
 
@@ -220,5 +232,15 @@ impl EventWriter {
                 self.to_transaction_record(tx, &tx_hash, aux_data, witness_set)
             })
             .collect()
+    }
+
+    pub fn collect_required_signers_records(&self, req_signers: &RequiredSigners) -> Result<Vec<RequiredSignerRecord>, Error> {
+        let mut signers = vec![];
+        for req_sign in req_signers {
+            let hex = req_sign.to_hex();
+            signers.push(RequiredSignerRecord(hex));
+        }
+
+        Ok(signers)
     }
 }

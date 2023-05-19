@@ -311,18 +311,21 @@ impl EventWriter {
         })
     }
 
-    pub fn to_certificate_event(&self, certificate: &Certificate) -> EventData {
+    pub fn to_certificate_record(&self, certificate: &Certificate) -> CertificateRecord {
         match certificate {
-            Certificate::StakeRegistration(credential) => EventData::StakeRegistration {
+            Certificate::StakeRegistration(credential) =>
+                CertificateRecord::StakeRegistration(StakeRegistrationRecord {
                 credential: credential.into(),
-            },
-            Certificate::StakeDeregistration(credential) => EventData::StakeDeregistration {
+            }),
+            Certificate::StakeDeregistration(credential) =>
+                CertificateRecord::StakeDeregistration(StakeDeregistrationRecord {
                 credential: credential.into(),
-            },
-            Certificate::StakeDelegation(credential, pool) => EventData::StakeDelegation {
+            }),
+            Certificate::StakeDelegation(credential, pool) =>
+                CertificateRecord::StakeDelegation( StakeDelegationRecord {
                 credential: credential.into(),
                 pool_hash: pool.to_hex(),
-            },
+            }),
             Certificate::PoolRegistration {
                 operator,
                 vrf_keyhash,
@@ -333,24 +336,25 @@ impl EventWriter {
                 pool_owners,
                 relays,
                 pool_metadata,
-            } => EventData::PoolRegistration {
+            } => CertificateRecord::PoolRegistration (PoolRegistrationRecord {
                 operator: operator.to_hex(),
                 vrf_keyhash: vrf_keyhash.to_hex(),
                 pledge: *pledge,
                 cost: *cost,
-                margin: (margin.numerator as f64 / margin.denominator as f64),
+                margin: self.to_rational_number_record(margin),
                 reward_account: reward_account.to_hex(),
                 pool_owners: pool_owners.iter().map(|p| p.to_hex()).collect(),
                 relays: relays.iter().map(relay_to_string).collect(),
                 pool_metadata: pool_metadata.as_ref().map(|m| m.url.clone()),
                 pool_metadata_hash: pool_metadata.as_ref().map(|m| m.hash.clone().to_hex()),
-            },
-            Certificate::PoolRetirement(pool, epoch) => EventData::PoolRetirement {
+            }),
+            Certificate::PoolRetirement(pool, epoch) =>
+                CertificateRecord::PoolRetirement (PoolRetirementRecord {
                 pool: pool.to_hex(),
                 epoch: *epoch,
-            },
-            Certificate::MoveInstantaneousRewardsCert(move_) => {
-                EventData::MoveInstantaneousRewardsCert {
+            }),
+            Certificate::MoveInstantaneousRewardsCert(move_) =>
+                CertificateRecord::MoveInstantaneousRewardsCert( MoveInstantaneousRewardsCertRecord {
                     from_reserves: matches!(move_.source, InstantaneousRewardSource::Reserves),
                     from_treasury: matches!(move_.source, InstantaneousRewardSource::Treasury),
                     to_stake_credentials: match &move_.target {
@@ -364,6 +368,64 @@ impl EventWriter {
                         InstantaneousRewardTarget::OtherAccountingPot(x) => Some(x),
                         _ => None,
                     },
+                }),
+            Certificate::GenesisKeyDelegation(genesis_hash,
+                                              genesis_delegate_hash,
+                                              vrf_key_hash)
+            => CertificateRecord::GenesisKeyDelegation (GenesisKeyDelegationRecord {
+                genesis_hash: genesis_hash.to_hex(),
+                genesis_delegate_hash: genesis_delegate_hash.to_hex(),
+                vrf_key_hash: vrf_key_hash.to_hex(),
+            }),
+        }
+    }
+
+    pub fn to_rational_number_record(&self, rational: &RationalNumber) -> RationalNumberRecord {
+        RationalNumberRecord {
+            numerator: rational.numerator,
+            denominator: rational.denominator,
+        }
+    }
+
+    pub fn to_rational_number_record_option(&self, rational: &Option<RationalNumber>) -> Option<RationalNumberRecord> {
+        match rational {
+            Some(rational) => Some(self.to_rational_number_record(rational)),
+            None => None,
+        }
+    }
+
+    pub fn to_unit_interval_record(&self, interval: &Option<UnitInterval>) -> Option<UnitIntervalRecord> {
+        match interval {
+            Some(interval) => Some(
+                UnitIntervalRecord(interval.numerator as u64, interval.denominator)),
+            None => None,
+        }
+
+    }
+
+    pub fn to_positive_interval_record(&self, interval: &PositiveInterval)
+        -> PositiveIntervalRecord {
+        PositiveIntervalRecord(interval.numerator as u64, interval.denominator)
+    }
+
+    pub fn to_nonce_record(&self, nonce: &Option<Nonce>) -> Option<NonceRecord> {
+        match nonce {
+            Some(nonce) => Some(NonceRecord {
+                variant: self.to_nonce_variant_record(&nonce.variant),
+                hash: nonce.hash.map(|x| x.to_hex()),
+            }),
+            None => None,
+        }
+    }
+
+    pub fn to_cost_models_record(&self, cost_models: &Option<CostMdls>) -> Option<CostModelsRecord> {
+        match cost_models {
+            Some(cost_models) => {
+                let mut cost_models_record = HashMap::new();
+                for cost_model_pair in cost_models.clone().to_vec() {
+                    let language_version_record = self.to_language_version_record(&cost_model_pair.0);
+                    let cost_model_record = self.to_cost_model_record(cost_model_pair.1);
+                    cost_models_record.insert(language_version_record, cost_model_record);
                 }
             }
             // TODO: not likely, leaving for later
