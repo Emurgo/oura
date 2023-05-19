@@ -15,6 +15,7 @@ pub enum Naming {
     Hash,
     SlotHash,
     BlockHash,
+    BlockNumber,
     EpochHash,
     EpochSlotHash,
     EpochBlockHash,
@@ -24,6 +25,7 @@ pub enum Naming {
 pub enum ContentType {
     Cbor,
     CborHex,
+    Json,
 }
 
 impl From<&ContentType> for String {
@@ -31,6 +33,7 @@ impl From<&ContentType> for String {
         match other {
             ContentType::Cbor => "application/cbor".to_string(),
             ContentType::CborHex => "text/plain".to_string(),
+            ContentType::Json => "application/json".to_string(),
         }
     }
 }
