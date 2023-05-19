@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use pallas::ledger::primitives::alonzo::MintedWitnessSet;
-use pallas::ledger::primitives::babbage::MintedDatumOption;
+use pallas::ledger::primitives::alonzo::{CostMdls, CostModel, ExUnits, Language, MintedWitnessSet, Nonce, NonceVariant, PositiveInterval, ProtocolParamUpdate, RationalNumber, UnitInterval, Update};
+use pallas::ledger::primitives::babbage::{MintedDatumOption, Script, ScriptRef};
 use pallas::ledger::traverse::{ComputeHash, OriginalHash};
 use pallas::{codec::utils::KeepRaw, crypto::hash::Hash};
 
@@ -17,15 +17,11 @@ use pallas::ledger::primitives::{
 use pallas::network::miniprotocols::Point;
 use serde_json::{json, Value as JsonValue};
 
-use crate::model::{
-    BlockRecord, Era, EventData, MetadataRecord, MetadatumRendition, MintRecord,
-    NativeWitnessRecord, OutputAssetRecord, PlutusDatumRecord, PlutusRedeemerRecord,
-    PlutusWitnessRecord, StakeCredential, TransactionRecord, TxInputRecord, TxOutputRecord,
-    VKeyWitnessRecord,
-};
+use crate::model::{BlockRecord, CertificateRecord, CostModelRecord, CostModelsRecord, Era, EventData, ExUnitsRecord, GenesisKeyDelegationRecord, LanguageVersionRecord, MetadataRecord, MetadatumRendition, MintRecord, MoveInstantaneousRewardsCertRecord, NativeWitnessRecord, NonceRecord, NonceVariantRecord, OutputAssetRecord, PlutusDatumRecord, PlutusRedeemerRecord, PlutusWitnessRecord, PoolRegistrationRecord, PoolRetirementRecord, PositiveIntervalRecord, ProtocolParamUpdateRecord, RationalNumberRecord, ScriptRefRecord, StakeCredential, StakeDelegationRecord, StakeDeregistrationRecord, StakeRegistrationRecord, TransactionRecord, TxInputRecord, TxOutputRecord, UnitIntervalRecord, UpdateRecord, VKeyWitnessRecord};
 
 use crate::utils::time::TimeProvider;
 use crate::Error;
+use crate::model::ScriptRefRecord::{NativeScript, PlutusV1, PlutusV2};
 
 use super::EventWriter;
 
@@ -177,6 +173,7 @@ impl EventWriter {
             assets: self.collect_asset_records(&output.amount).into(),
             datum_hash: output.datum_hash.map(|hash| hash.to_string()),
             inline_datum: None,
+            inlined_script: None,
         })
     }
 
@@ -199,6 +196,10 @@ impl EventWriter {
                 Some(MintedDatumOption::Data(x)) => Some(self.to_plutus_datum_record(x)?),
                 _ => None,
             },
+            inlined_script: match &output.script_ref {
+                Some(script) => Some(self.to_script_ref_record(script)?),
+                None => None,
+            }
         })
     }
 
@@ -299,6 +300,23 @@ impl EventWriter {
             policy_id: script.compute_hash().to_hex(),
             script_json: script.to_json(),
         })
+    }
+
+    pub fn to_script_ref_record(&self, script_ref: &ScriptRef) -> Result<ScriptRefRecord, crate::Error> {
+        match &script_ref.0 {
+            Script::PlutusV1Script(script) => Ok(PlutusV1 {
+                script_hash: script.compute_hash().to_hex(),
+                script_hex: script.as_ref().to_hex(),
+            }),
+            Script::PlutusV2Script(script) => Ok(PlutusV2 {
+                script_hash: script.compute_hash().to_hex(),
+                script_hex: script.as_ref().to_hex(),
+            }),
+            Script::NativeScript(script) => Ok(NativeScript {
+                policy_id: script.compute_hash().to_hex(),
+                script_json: script.to_json(),
+            }),
+        }
     }
 
     pub fn to_vkey_witness_record(
@@ -427,9 +445,56 @@ impl EventWriter {
                     let cost_model_record = self.to_cost_model_record(cost_model_pair.1);
                     cost_models_record.insert(language_version_record, cost_model_record);
                 }
-            }
-            // TODO: not likely, leaving for later
-            Certificate::GenesisKeyDelegation(..) => EventData::GenesisKeyDelegation {},
+                Some(CostModelsRecord(cost_models_record))
+            },
+            None => None,
+        }
+    }
+
+    pub fn to_language_version_record(&self, language_version: &Language) -> LanguageVersionRecord {
+        match language_version {
+            Language::PlutusV1 => LanguageVersionRecord::PlutusV1,
+        }
+    }
+
+    pub fn to_cost_model_record(&self, cost_model: CostModel) -> CostModelRecord {
+        CostModelRecord(cost_model)
+    }
+
+    pub fn to_nonce_variant_record(&self, nonce_variant: &NonceVariant) -> NonceVariantRecord {
+        match nonce_variant {
+            NonceVariant::NeutralNonce => NonceVariantRecord::NeutralNonce,
+            NonceVariant::Nonce => NonceVariantRecord::Nonce,
+        }
+    }
+
+    pub fn to_ex_units_record(&self, ex_units: &Option<ExUnits>) -> Option<ExUnitsRecord> {
+        match ex_units {
+            Some(ex_units) => Some(ExUnitsRecord {
+                mem: ex_units.mem,
+                steps: ex_units.steps,
+            }),
+            None => None,
+        }
+    }
+
+    pub fn to_certificate_event(&self, certificate: &Certificate) -> EventData {
+        let certificate_record = self.to_certificate_record(certificate);
+        match certificate_record {
+            CertificateRecord::StakeRegistration(cert_record) =>
+                EventData::StakeRegistration(cert_record),
+            CertificateRecord::StakeDeregistration(cert_record) =>
+                EventData::StakeDeregistration(cert_record),
+            CertificateRecord::StakeDelegation(cert_record) =>
+                EventData::StakeDelegation(cert_record),
+            CertificateRecord::PoolRegistration(cert_record) =>
+                EventData::PoolRegistration(cert_record),
+            CertificateRecord::PoolRetirement(cert_record) =>
+                EventData::PoolRetirement(cert_record),
+            CertificateRecord::MoveInstantaneousRewardsCert(cert_record) =>
+                EventData::MoveInstantaneousRewardsCert(cert_record),
+            CertificateRecord::GenesisKeyDelegation(cert_record) =>
+                EventData::GenesisKeyDelegation(cert_record),
         }
     }
 
@@ -487,9 +552,32 @@ impl EventWriter {
             }
         }
 
+        if let Some(certs) = &body.certificates {
+            let certs = self.collect_certificate_records(certs);
+            record.certificate_count = certs.len();
+
+            if self.config.include_transaction_details {
+                record.certs = certs.into();
+            }
+        }
+
+        if let Some(update) = &body.update {
+            if self.config.include_transaction_details {
+                record.update = Some(self.to_update_record(update));
+            }
+        }
+
+        if let Some(req_signers) = &body.required_signers {
+            let req_signers = self.collect_required_signers_records(req_signers)?;
+            record.required_signers_count = req_signers.len();
+
+            if self.config.include_transaction_details {
+                record.required_signers = Some(req_signers);
+            }
+        }
+
         // TODO
         // TransactionBodyComponent::ScriptDataHash(_)
-        // TransactionBodyComponent::RequiredSigners(_)
         // TransactionBodyComponent::AuxiliaryDataHash(_)
 
         if self.config.include_transaction_details {
@@ -573,6 +661,50 @@ impl EventWriter {
         }
 
         Ok(record)
+    }
+
+    pub fn to_protocol_update_record(&self, update: &ProtocolParamUpdate) -> ProtocolParamUpdateRecord {
+        ProtocolParamUpdateRecord {
+            minfee_a: update.minfee_a,
+            minfee_b: update.minfee_b,
+            max_block_body_size: update.max_block_body_size,
+            max_transaction_size: update.max_transaction_size,
+            max_block_header_size: update.max_block_header_size,
+            key_deposit: update.key_deposit,
+            pool_deposit: update.pool_deposit,
+            maximum_epoch: update.maximum_epoch,
+            desired_number_of_stake_pools: update.desired_number_of_stake_pools,
+            pool_pledge_influence: self.to_rational_number_record_option(&update.pool_pledge_influence),
+            expansion_rate: self.to_unit_interval_record(&update.expansion_rate),
+            treasury_growth_rate: self.to_unit_interval_record(&update.treasury_growth_rate),
+            decentralization_constant: self.to_unit_interval_record(&update.decentralization_constant),
+            extra_entropy: self.to_nonce_record(&update.extra_entropy),
+            protocol_version: update.protocol_version,
+            min_pool_cost: update.min_pool_cost,
+            ada_per_utxo_byte: update.ada_per_utxo_byte,
+            cost_models_for_script_languages: self.to_cost_models_record(&update.cost_models_for_script_languages),
+            execution_costs: match &update.execution_costs {
+                Some(execution_costs) => Some(json!(execution_costs)),
+                None => None
+            },
+            max_tx_ex_units: self.to_ex_units_record(&update.max_tx_ex_units),
+            max_block_ex_units: self.to_ex_units_record(&update.max_block_ex_units),
+            max_value_size: update.max_value_size,
+            collateral_percentage: update.collateral_percentage,
+            max_collateral_inputs: update.max_collateral_inputs,
+        }
+    }
+
+    pub fn to_update_record(&self, update: &Update) -> UpdateRecord {
+        let mut updates = HashMap::new();
+        for update in update.proposed_protocol_parameter_updates.clone().to_vec() {
+            updates.insert(update.0.to_hex(), self.to_protocol_update_record(&update.1));
+        }
+
+        UpdateRecord{
+            proposed_protocol_parameter_updates: updates,
+            epoch: update.epoch,
+        }
     }
 
     pub(crate) fn append_rollback_event(&self, point: &Point) -> Result<(), Error> {
