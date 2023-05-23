@@ -218,75 +218,59 @@ impl LogLine {
                 max_width,
                 format!("{{ vkey: {vkey_hex} }}"),
             ),
-            EventData::StakeRegistration { credential } => LogLine::new_raw(
+            EventData::StakeRegistration(cert) => LogLine::new_raw(
                 source,
                 "STAKE+",
                 Color::Magenta,
                 max_width,
-                format!("{{ credential: {credential:?} }}"),
+                format!("{{ credential: {0:?} }}", cert.credential),
             ),
-            EventData::StakeDeregistration { credential } => LogLine::new_raw(
+            EventData::StakeDeregistration(cert) => LogLine::new_raw(
                 source,
                 "STAKE-",
                 Color::DarkMagenta,
                 max_width,
-                format!("{{ credential: {credential:?} }}"),
+                format!("{{ credential: {0:?} }}", cert.credential),
             ),
-            EventData::StakeDelegation {
-                credential,
-                pool_hash,
-            } => LogLine::new_raw(
+            EventData::StakeDelegation(cert) => LogLine::new_raw(
                 source,
                 "DELE",
                 Color::Magenta,
                 max_width,
-                format!("{{ credential: {credential:?}, pool: {pool_hash} }}"),
+                format!("{{ credential: {0:?}, pool: {1} }}", cert.credential, cert.pool_hash),
             ),
-            EventData::PoolRegistration {
-                operator,
-                vrf_keyhash: _,
-                pledge,
-                cost,
-                margin,
-                reward_account: _,
-                pool_owners: _,
-                relays: _,
-                pool_metadata,
-                pool_metadata_hash: _,
-            } => LogLine::new_raw(
+            EventData::PoolRegistration(cert) => LogLine::new_raw(
                 source,
                 "POOL+",
                 Color::Magenta,
                 max_width,
                 format!(
-                    "{{ operator: {operator}, pledge: {pledge}, cost: {cost}, margin: {margin}, metadata: {pool_metadata:?} }}"),
+                    "{{ operator: {0}, pledge: {1}, cost: {2}, margin: {{ numerator: {3}, denominator: {4} }}, metadata: {5:?} }}",
+                    cert.operator, cert.pledge, cert.cost, cert.margin.numerator, cert.margin.denominator, cert.pool_metadata),
             ),
-            EventData::PoolRetirement { pool, epoch } => LogLine::new_raw(
+            EventData::PoolRetirement(cert) => LogLine::new_raw(
                 source,
                 "POOL-",
                 Color::DarkMagenta,
                 max_width,
-                format!("{{ pool: {pool}, epoch: {epoch} }}"),
+                format!("{{ pool: {0}, epoch: {1} }}", cert.pool, cert.epoch),
             ),
-            EventData::GenesisKeyDelegation { } => LogLine::new_raw(
+            EventData::GenesisKeyDelegation(cert) => LogLine::new_raw(
                 source,
                 "GENESIS",
                 Color::Magenta,
                 max_width,
-                "{{ ... }}".to_string(),
+                format!("{{ genesis_hash: {0}, genesis_delegate_hash: {1}, vrf_key_hash: {2} }}",
+                cert.genesis_hash, cert.genesis_delegate_hash, cert.vrf_key_hash),
             ),
-            EventData::MoveInstantaneousRewardsCert {
-                from_reserves,
-                from_treasury,
-                to_stake_credentials,
-                to_other_pot,
-            } => LogLine::new_raw(
+            EventData::MoveInstantaneousRewardsCert(cert) => LogLine::new_raw(
                 source,
                 "MOVE",
                 Color::Magenta,
                 max_width,
                 format!(
-                    "{{ reserves: {from_reserves}, treasury: {from_treasury}, to_credentials: {to_stake_credentials:?}, to_other_pot: {to_other_pot:?} }}"),
+                    "{{ reserves: {0}, treasury: {1}, to_credentials: {2:?}, to_other_pot: {3:?} }}",
+                cert.from_reserves, cert.from_treasury, cert.to_stake_credentials, cert.to_other_pot),
             ),
             EventData::RollBack {
                 block_slot,

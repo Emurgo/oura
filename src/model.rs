@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use std::collections::HashMap;
 
 use merge::Merge;
 
@@ -126,6 +127,7 @@ pub struct TxOutputRecord {
     pub assets: Option<Vec<OutputAssetRecord>>,
     pub datum_hash: Option<String>,
     pub inline_datum: Option<PlutusDatumRecord>,
+    pub inlined_script: Option<ScriptRefRecord>,
 }
 
 impl From<TxOutputRecord> for EventData {
@@ -165,14 +167,19 @@ pub struct TransactionRecord {
     pub has_collateral_output: bool,
     pub output_count: usize,
     pub mint_count: usize,
+    pub certificate_count: usize,
     pub total_output: u64,
+    pub required_signers_count: usize,
 
     // include_details
+    pub required_signers: Option<Vec<RequiredSignerRecord>>,
+    pub update: Option<UpdateRecord>,
     pub metadata: Option<Vec<MetadataRecord>>,
     pub inputs: Option<Vec<TxInputRecord>>,
     pub outputs: Option<Vec<TxOutputRecord>>,
     pub collateral_inputs: Option<Vec<TxInputRecord>>,
     pub collateral_output: Option<TxOutputRecord>,
+    pub certs: Option<Vec<CertificateRecord>>,
     pub mint: Option<Vec<MintRecord>>,
     pub vkey_witnesses: Option<Vec<VKeyWitnessRecord>>,
     pub native_witnesses: Option<Vec<NativeWitnessRecord>>,
@@ -210,10 +217,139 @@ pub enum StakeCredential {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub enum ScriptRefRecord {
+    PlutusV1 {
+        script_hash: String,
+        script_hex: String,
+    },
+    PlutusV2 {
+        script_hash: String,
+        script_hex: String,
+    },
+    NativeScript {
+        policy_id: String,
+        script_json: JsonValue,
+    },
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd)]
+pub enum CertificateRecord {
+    StakeRegistration(StakeRegistrationRecord),
+    StakeDeregistration(StakeDeregistrationRecord),
+    StakeDelegation(StakeDelegationRecord),
+    PoolRegistration(PoolRegistrationRecord),
+    PoolRetirement(PoolRetirementRecord),
+    GenesisKeyDelegation(GenesisKeyDelegationRecord),
+    MoveInstantaneousRewardsCert(MoveInstantaneousRewardsCertRecord),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd)]
+pub struct StakeRegistrationRecord {
+    pub credential: StakeCredential,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd)]
+pub struct StakeDeregistrationRecord {
+    pub credential: StakeCredential,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd)]
+pub struct StakeDelegationRecord {
+    pub credential: StakeCredential,
+    pub pool_hash: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd)]
+pub struct PoolRegistrationRecord {
+    pub operator: String,
+    pub vrf_keyhash: String,
+    pub pledge: u64,
+    pub cost: u64,
+    pub margin: RationalNumberRecord,
+    pub reward_account: String,
+    pub pool_owners: Vec<String>,
+    pub relays: Vec<String>,
+    pub pool_metadata: Option<String>,
+    pub pool_metadata_hash: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd)]
+pub struct PoolRetirementRecord {
+    pub pool: String,
+    pub epoch: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd)]
+pub struct GenesisKeyDelegationRecord {
+    pub genesis_hash: String,
+    pub genesis_delegate_hash: String,
+    pub vrf_key_hash: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct MoveInstantaneousRewardsCertRecord {
+    pub from_reserves: bool,
+    pub from_treasury: bool,
+    pub to_stake_credentials: Option<Vec<(StakeCredential, i64)>>,
+    pub to_other_pot: Option<u64>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct RationalNumberRecord {
+    pub numerator: i64,
+    pub denominator: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct UnitIntervalRecord(pub u64, pub u64);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct PositiveIntervalRecord(pub u64, pub u64);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ExUnitsRecord {
+    pub mem: u32,
+    pub steps: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ExUnitPricesRecord {
+    pub mem_price: PositiveIntervalRecord,
+    pub step_price: PositiveIntervalRecord,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct NonceRecord {
+    pub variant: NonceVariantRecord,
+    pub hash: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum NonceVariantRecord {
+    NeutralNonce,
+    Nonce,
+}
+
+#[derive(Serialize, Deserialize, Hash, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum LanguageVersionRecord {
+    PlutusV1,
+    PlutusV2,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct CostModelRecord(pub Vec<i64>);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct CostModelsRecord(pub HashMap<LanguageVersionRecord, CostModelRecord>);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct VKeyWitnessRecord {
     pub vkey_hex: String,
     pub signature_hex: String,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct RequiredSignerRecord(pub String);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct NativeWitnessRecord {
@@ -326,43 +462,51 @@ pub enum EventData {
         hash: String,
         data: String,
     },
-    StakeRegistration {
-        credential: StakeCredential,
-    },
-    StakeDeregistration {
-        credential: StakeCredential,
-    },
-    StakeDelegation {
-        credential: StakeCredential,
-        pool_hash: String,
-    },
-    PoolRegistration {
-        operator: String,
-        vrf_keyhash: String,
-        pledge: u64,
-        cost: u64,
-        margin: f64,
-        reward_account: String,
-        pool_owners: Vec<String>,
-        relays: Vec<String>,
-        pool_metadata: Option<String>,
-        pool_metadata_hash: Option<String>,
-    },
-    PoolRetirement {
-        pool: String,
-        epoch: u64,
-    },
-    GenesisKeyDelegation {},
-    MoveInstantaneousRewardsCert {
-        from_reserves: bool,
-        from_treasury: bool,
-        to_stake_credentials: Option<Vec<(StakeCredential, i64)>>,
-        to_other_pot: Option<u64>,
-    },
+    StakeRegistration(StakeRegistrationRecord),
+    StakeDeregistration(StakeDeregistrationRecord),
+    StakeDelegation(StakeDelegationRecord),
+    PoolRegistration(PoolRegistrationRecord),
+    PoolRetirement(PoolRetirementRecord),
+    GenesisKeyDelegation(GenesisKeyDelegationRecord),
+    MoveInstantaneousRewardsCert(MoveInstantaneousRewardsCertRecord),
     RollBack {
         block_slot: u64,
         block_hash: String,
     },
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct ProtocolParamUpdateRecord {
+    pub minfee_a: Option<u32>,
+    pub minfee_b: Option<u32>,
+    pub max_block_body_size: Option<u32>,
+    pub max_transaction_size: Option<u32>,
+    pub max_block_header_size: Option<u32>,
+    pub key_deposit: Option<u64>,
+    pub pool_deposit: Option<u64>,
+    pub maximum_epoch: Option<u64>,
+    pub desired_number_of_stake_pools: Option<u32>,
+    pub pool_pledge_influence: Option<RationalNumberRecord>,
+    pub expansion_rate: Option<UnitIntervalRecord>,
+    pub treasury_growth_rate: Option<UnitIntervalRecord>,
+    pub decentralization_constant: Option<UnitIntervalRecord>,
+    pub extra_entropy: Option<NonceRecord>,
+    pub protocol_version: Option<(u64, u64)>,
+    pub min_pool_cost: Option<u64>,
+    pub ada_per_utxo_byte: Option<u64>,
+    pub cost_models_for_script_languages: Option<CostModelsRecord>,
+    pub execution_costs: Option<JsonValue>,
+    pub max_tx_ex_units: Option<ExUnitsRecord>,
+    pub max_block_ex_units: Option<ExUnitsRecord>,
+    pub max_value_size: Option<u32>,
+    pub collateral_percentage: Option<u32>,
+    pub max_collateral_inputs: Option<u32>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct UpdateRecord {
+    pub proposed_protocol_parameter_updates: HashMap<String, ProtocolParamUpdateRecord>,
+    pub epoch: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

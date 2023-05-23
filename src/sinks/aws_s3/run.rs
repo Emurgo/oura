@@ -1,5 +1,6 @@
 use aws_sdk_s3::{types::ByteStream, Client};
 use std::sync::Arc;
+use serde_json::json;
 
 use crate::{
     model::{BlockRecord, EventData},
@@ -44,6 +45,7 @@ fn define_obj_key(prefix: &str, policy: &Naming, record: &BlockRecord) -> String
         Naming::Hash => format!("{}{}", prefix, record.hash),
         Naming::SlotHash => format!("{}{}.{}", prefix, record.slot, record.hash),
         Naming::BlockHash => format!("{}{}.{}", prefix, record.number, record.hash),
+        Naming::BlockNumber => format!( "{}", record.number),
         Naming::EpochHash => format!(
             "{}{}.{}",
             prefix,
@@ -86,6 +88,10 @@ fn define_content(content_type: &ContentType, record: &BlockRecord) -> ByteStrea
             ByteStream::from(cbor)
         }
         ContentType::CborHex => ByteStream::from(hex.as_bytes().to_vec()),
+        ContentType::Json => {
+            let json = json!(record).to_string().as_bytes().to_vec();
+            ByteStream::from(json)
+        }
     }
 }
 
