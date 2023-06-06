@@ -1,16 +1,16 @@
+use super::Config;
+use crate::model::BlockRecord;
+use crate::sinks::aws_s3_sqs::{ContentType, Naming};
+use crate::Error;
+use aws_sdk_s3::types::ByteStream as S3ByteStream;
 use aws_sdk_s3::Client as S3Client;
 use aws_sdk_s3::Region as S3Region;
 use aws_sdk_s3::RetryConfig as S3RetryConfig;
-use aws_sdk_s3::types::ByteStream as S3ByteStream;
 use aws_sdk_sqs::Client as SqsClient;
 use aws_sdk_sqs::Region as SqsRegion;
 use aws_sdk_sqs::RetryConfig as SqsRetryConfig;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use super::Config;
-use crate::Error;
-use crate::model::BlockRecord;
-use crate::sinks::aws_s3_sqs::{ContentType, Naming};
 
 const DEFAULT_MAX_RETRIES: u32 = 5;
 
@@ -21,7 +21,7 @@ struct SqsMessage {
     previous_hash: String,
     block_number: u64,
     slot: u64,
-    tip: Option<i64>
+    tip: Option<i64>,
 }
 
 impl From<&ContentType> for String {
@@ -45,7 +45,7 @@ pub(super) struct CombinedClient {
 }
 
 impl CombinedClient {
-    pub fn new(config: &Config)  -> Result<CombinedClient, Error> {
+    pub fn new(config: &Config) -> Result<CombinedClient, Error> {
         let s3 = setup_s3_client(config)?;
         let sqs = setup_sqs_client(config)?;
         let naming = config.s3_naming.clone().unwrap_or(Naming::Hash);
@@ -66,21 +66,22 @@ impl CombinedClient {
         })
     }
 
-    pub async fn send_block(self: &Self, record: &BlockRecord, tip: Option<i64>) -> Result<(), Error> {
+    pub async fn send_block(
+        self: &Self,
+        record: &BlockRecord,
+        tip: Option<i64>,
+    ) -> Result<(), Error> {
         let key = self.get_s3_key(record);
         self.send_s3_object(&key, record).await?;
         self.send_sqs_message(&key, record, tip).await?;
         Ok(())
     }
 
-    async fn send_s3_object(
-        self: &Self,
-        key: &str,
-        record: &BlockRecord,
-    ) -> Result<(), Error> {
-        let content_type : String = String::from(&self.content_type);
+    async fn send_s3_object(self: &Self, key: &str, record: &BlockRecord) -> Result<(), Error> {
+        let content_type: String = String::from(&self.content_type);
         let content = encode_block(&self.content_type, record);
-        let req = self.s3
+        let req = self
+            .s3
             .put_object()
             .bucket(&self.config.s3_bucket)
             .key(key)
@@ -101,7 +102,12 @@ impl CombinedClient {
         Ok(())
     }
 
-    async fn send_sqs_message(self: &Self, key: &str, record: &BlockRecord, tip: Option<i64>) -> Result<(), Error> {
+    async fn send_sqs_message(
+        self: &Self,
+        key: &str,
+        record: &BlockRecord,
+        tip: Option<i64>,
+    ) -> Result<(), Error> {
         let message = SqsMessage {
             s3_key: key.to_string(),
             block_hash: record.hash.to_string(),
@@ -113,7 +119,8 @@ impl CombinedClient {
 
         let body = json!(message).to_string();
 
-        let mut req = self.sqs
+        let mut req = self
+            .sqs
             .send_message()
             .queue_url(&self.config.sqs_queue_url)
             .message_body(body);
@@ -132,9 +139,7 @@ impl CombinedClient {
     }
 
     fn get_s3_key(&self, record: &BlockRecord) -> String {
-        define_obj_key(&self.s3_prefix,
-                       &self.naming,
-                       record)
+        define_obj_key(&self.s3_prefix, &self.naming, record)
     }
 }
 
@@ -209,7 +214,7 @@ fn define_obj_key(prefix: &str, policy: &Naming, record: &BlockRecord) -> String
         Naming::Hash => format!("{}{}", prefix, record.hash),
         Naming::SlotHash => format!("{}{}.{}", prefix, record.slot, record.hash),
         Naming::BlockHash => format!("{}{}.{}", prefix, record.number, record.hash),
-        Naming::BlockNumber => format!( "{}", record.number),
+        Naming::BlockNumber => format!("{}", record.number),
         Naming::EpochHash => format!(
             "{}{}.{}",
             prefix,

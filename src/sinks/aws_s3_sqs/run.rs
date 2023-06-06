@@ -1,13 +1,7 @@
 use std::sync::Arc;
 
-use crate::{
-    model::{EventData},
-    pipelining::StageReceiver,
-    utils::Utils,
-    Error,
-};
 use crate::sinks::aws_s3_sqs::combined_client::CombinedClient;
-
+use crate::{model::EventData, pipelining::StageReceiver, utils::Utils, Error};
 
 pub(super) fn writer_loop(
     input: StageReceiver,
@@ -23,15 +17,13 @@ pub(super) fn writer_loop(
 
     for event in input.iter() {
         if let EventData::Block(record) = &event.data {
-
             let client = client.clone();
-            let tip = utils.metrics.as_ref().map(
-                |metrics| metrics.chain_tip.get(),
-            );
+            let tip = utils
+                .metrics
+                .as_ref()
+                .map(|metrics| metrics.chain_tip.get());
 
-            let result = rt.block_on(async move {
-                client.send_block(record, tip).await
-            });
+            let result = rt.block_on(async move { client.send_block(record, tip).await });
 
             match result {
                 Ok(_) => {
