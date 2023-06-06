@@ -25,9 +25,12 @@ pub(super) fn writer_loop(
         if let EventData::Block(record) = &event.data {
 
             let client = client.clone();
+            let tip = utils.metrics.as_ref().map(
+                |metrics| metrics.chain_tip.get(),
+            );
 
             let result = rt.block_on(async move {
-                client.send_block(record).await
+                client.send_block(record, tip).await
             });
 
             match result {
