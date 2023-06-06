@@ -70,6 +70,8 @@ impl ChainObserver {
         let ready = self.chain_buffer.pop_with_depth(self.min_depth);
         log::debug!("found {} points with required min depth", ready.len());
 
+        self.event_writer.utils.tip.store(tip.1, std::sync::atomic::Ordering::SeqCst);
+
         // find confirmed block in memory and send down the pipeline
         for point in ready {
             let block = self

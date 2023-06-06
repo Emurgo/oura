@@ -72,6 +72,8 @@ impl ChainObserver {
         let ready = self.chain_buffer.pop_with_depth(self.min_depth);
         log::debug!("found {} points with required min depth", ready.len());
 
+        self.event_writer.utils.tip.store(tip.1, std::sync::atomic::Ordering::SeqCst);
+
         // request download of blocks for confirmed points
         for point in ready {
             log::debug!("requesting block fetch for point {:?}", point);

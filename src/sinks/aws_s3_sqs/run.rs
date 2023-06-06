@@ -18,10 +18,7 @@ pub(super) fn writer_loop(
     for event in input.iter() {
         if let EventData::Block(record) = &event.data {
             let client = client.clone();
-            let tip = utils
-                .metrics
-                .as_ref()
-                .map(|metrics| metrics.chain_tip.get());
+            let tip = utils.tip.load(std::sync::atomic::Ordering::SeqCst);
 
             let result = rt.block_on(async move { client.send_block(record, tip).await });
 

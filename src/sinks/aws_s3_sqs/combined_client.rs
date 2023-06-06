@@ -21,7 +21,7 @@ struct SqsMessage {
     previous_hash: String,
     block_number: u64,
     slot: u64,
-    tip: Option<i64>,
+    tip: u64,
 }
 
 impl From<&ContentType> for String {
@@ -69,7 +69,7 @@ impl CombinedClient {
     pub async fn send_block(
         self: &Self,
         record: &BlockRecord,
-        tip: Option<i64>,
+        tip: u64,
     ) -> Result<(), Error> {
         let key = self.get_s3_key(record);
         self.send_s3_object(&key, record).await?;
@@ -106,7 +106,7 @@ impl CombinedClient {
         self: &Self,
         key: &str,
         record: &BlockRecord,
-        tip: Option<i64>,
+        tip: u64,
     ) -> Result<(), Error> {
         let message = SqsMessage {
             s3_key: key.to_string(),

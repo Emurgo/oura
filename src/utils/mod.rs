@@ -6,6 +6,7 @@
 //! pointer.
 
 use std::sync::Arc;
+use std::sync::atomic::AtomicU64;
 
 use pallas::network::miniprotocols::{Point, MAINNET_MAGIC, TESTNET_MAGIC};
 
@@ -169,6 +170,7 @@ pub struct Utils {
     pub(crate) time: Option<NaiveTime>,
     pub(crate) cursor: Option<cursor::Provider>,
     pub(crate) metrics: Option<metrics::Provider>,
+    pub(crate) tip: AtomicU64,
 }
 
 // TODO: refactor this using the builder pattern
@@ -179,6 +181,7 @@ impl Utils {
             well_known,
             cursor: None,
             metrics: None,
+            tip: 0.into(),
         }
     }
 
