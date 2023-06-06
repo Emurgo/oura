@@ -44,6 +44,9 @@ use oura::sinks::aws_lambda::Config as AwsLambdaConfig;
 #[cfg(feature = "aws")]
 use oura::sinks::aws_s3::Config as AwsS3Config;
 
+#[cfg(feature = "aws")]
+use oura::sinks::aws_s3_sqs::Config as AwsS3SqsConfig;
+
 #[cfg(feature = "redissink")]
 use oura::sinks::redis::Config as RedisConfig;
 
@@ -130,6 +133,9 @@ enum Sink {
     #[cfg(feature = "aws")]
     AwsS3(AwsS3Config),
 
+    #[cfg(feature = "aws")]
+    AwsS3Sqs(AwsS3SqsConfig),
+
     #[cfg(feature = "redissink")]
     Redis(RedisConfig),
 
@@ -169,6 +175,9 @@ fn bootstrap_sink(config: Sink, input: StageReceiver, utils: Arc<Utils>) -> Boot
 
         #[cfg(feature = "aws")]
         Sink::AwsS3(c) => WithUtils::new(c, utils).bootstrap(input),
+
+        #[cfg(feature = "aws")]
+        Sink::AwsS3Sqs(c) => WithUtils::new(c, utils).bootstrap(input),
 
         #[cfg(feature = "redissink")]
         Sink::Redis(c) => WithUtils::new(c, utils).bootstrap(input),

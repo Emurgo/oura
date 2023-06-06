@@ -27,6 +27,9 @@ pub mod aws_lambda;
 #[cfg(feature = "aws")]
 pub mod aws_s3;
 
+#[cfg(feature = "aws")]
+pub mod aws_s3_sqs;
+
 #[cfg(feature = "redissink")]
 pub mod redis;
 
