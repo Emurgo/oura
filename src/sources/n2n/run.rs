@@ -5,6 +5,7 @@ use pallas::network::{
     multiplexer::StdChannel,
 };
 
+use pallas::network::miniprotocols::handshake::n2n::VersionData;
 use std::sync::mpsc::{Receiver, SyncSender};
 
 use crate::{

@@ -1,13 +1,20 @@
-use std::collections::HashMap;
 use pallas::codec::utils::KeepRaw;
+use std::collections::HashMap;
 
-use pallas::ledger::primitives::babbage::{AuxiliaryData, CostMdls, Language, MintedBlock, MintedDatumOption, MintedPostAlonzoTransactionOutput, MintedTransactionBody, MintedTransactionOutput, MintedWitnessSet, NetworkId, ProtocolParamUpdate, Update};
+use pallas::ledger::primitives::babbage::{
+    AuxiliaryData, CostMdls, Language, MintedBlock, MintedDatumOption,
+    MintedPostAlonzoTransactionOutput, MintedTransactionBody, MintedTransactionOutput,
+    MintedWitnessSet, NetworkId, ProtocolParamUpdate, Update,
+};
 
 use pallas::crypto::hash::Hash;
 use pallas::ledger::traverse::OriginalHash;
 use serde_json::json;
 
-use crate::model::{BlockRecord, CostModelRecord, CostModelsRecord, Era, LanguageVersionRecord, ProtocolParamUpdateRecord, TransactionRecord, UpdateRecord};
+use crate::model::{
+    BlockRecord, CostModelRecord, CostModelsRecord, Era, LanguageVersionRecord,
+    ProtocolParamUpdateRecord, TransactionRecord, UpdateRecord,
+};
 use crate::utils::time::TimeProvider;
 use crate::{
     model::{EventContext, EventData},
@@ -383,7 +390,10 @@ impl EventWriter {
         Ok(())
     }
 
-    pub fn to_babbage_cost_models_record(&self, cost_models: &Option<CostMdls>) -> Option<CostModelsRecord> {
+    pub fn to_babbage_cost_models_record(
+        &self,
+        cost_models: &Option<CostMdls>,
+    ) -> Option<CostModelsRecord> {
         match cost_models {
             Some(cost_models) => {
                 let mut cost_models_record = HashMap::new();
@@ -399,19 +409,25 @@ impl EventWriter {
                 }
 
                 Some(CostModelsRecord(cost_models_record))
-            },
+            }
             None => None,
         }
     }
 
-    pub fn to_babbage_language_version_record(&self, language_version: &Language) -> LanguageVersionRecord {
+    pub fn to_babbage_language_version_record(
+        &self,
+        language_version: &Language,
+    ) -> LanguageVersionRecord {
         match language_version {
             Language::PlutusV1 => LanguageVersionRecord::PlutusV1,
             Language::PlutusV2 => LanguageVersionRecord::PlutusV2,
         }
     }
 
-    pub fn to_babbage_protocol_update_record(&self, update: &ProtocolParamUpdate) -> ProtocolParamUpdateRecord {
+    pub fn to_babbage_protocol_update_record(
+        &self,
+        update: &ProtocolParamUpdate,
+    ) -> ProtocolParamUpdateRecord {
         ProtocolParamUpdateRecord {
             minfee_a: update.minfee_a,
             minfee_b: update.minfee_b,
@@ -422,7 +438,8 @@ impl EventWriter {
             pool_deposit: update.pool_deposit,
             maximum_epoch: update.maximum_epoch,
             desired_number_of_stake_pools: update.desired_number_of_stake_pools,
-            pool_pledge_influence: self.to_rational_number_record_option(&update.pool_pledge_influence),
+            pool_pledge_influence: self
+                .to_rational_number_record_option(&update.pool_pledge_influence),
             expansion_rate: self.to_unit_interval_record(&update.expansion_rate),
             treasury_growth_rate: self.to_unit_interval_record(&update.treasury_growth_rate),
             decentralization_constant: None,
@@ -430,10 +447,11 @@ impl EventWriter {
             protocol_version: update.protocol_version,
             min_pool_cost: update.min_pool_cost,
             ada_per_utxo_byte: update.ada_per_utxo_byte,
-            cost_models_for_script_languages: self.to_babbage_cost_models_record(&update.cost_models_for_script_languages),
+            cost_models_for_script_languages: self
+                .to_babbage_cost_models_record(&update.cost_models_for_script_languages),
             execution_costs: match &update.execution_costs {
                 Some(execution_costs) => Some(json!(execution_costs)),
-                None => None
+                None => None,
             },
             max_tx_ex_units: self.to_ex_units_record(&update.max_tx_ex_units),
             max_block_ex_units: self.to_ex_units_record(&update.max_block_ex_units),
@@ -446,10 +464,13 @@ impl EventWriter {
     pub fn to_babbage_update_record(&self, update: &Update) -> UpdateRecord {
         let mut updates = HashMap::new();
         for update in update.proposed_protocol_parameter_updates.clone().to_vec() {
-            updates.insert(update.0.to_hex(), self.to_babbage_protocol_update_record(&update.1));
+            updates.insert(
+                update.0.to_hex(),
+                self.to_babbage_protocol_update_record(&update.1),
+            );
         }
 
-        UpdateRecord{
+        UpdateRecord {
             proposed_protocol_parameter_updates: updates,
             epoch: update.epoch,
         }

@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use pallas::ledger::primitives::alonzo::{CostMdls, CostModel, ExUnits, Language, MintedWitnessSet, Nonce, NonceVariant, PositiveInterval, ProtocolParamUpdate, RationalNumber, UnitInterval, Update};
+use pallas::ledger::primitives::alonzo::{
+    CostMdls, CostModel, ExUnits, Language, MintedWitnessSet, Nonce, NonceVariant,
+    PositiveInterval, ProtocolParamUpdate, RationalNumber, UnitInterval, Update,
+};
 use pallas::ledger::primitives::babbage::{MintedDatumOption, Script, ScriptRef};
 use pallas::ledger::traverse::{ComputeHash, OriginalHash};
 use pallas::{codec::utils::KeepRaw, crypto::hash::Hash};
@@ -17,11 +20,24 @@ use pallas::ledger::primitives::{
 use pallas::network::miniprotocols::Point;
 use serde_json::{json, Value as JsonValue};
 
-use crate::model::{AnchorRecord, AuthCommitteeHotCertRecord, BlockRecord, CertificateRecord, CostModelRecord, CostModelsRecord, DRep, Era, EventData, ExUnitsRecord, GenesisKeyDelegationRecord, LanguageVersionRecord, MetadataRecord, MetadatumRendition, MintRecord, MoveInstantaneousRewardsCertRecord, NativeWitnessRecord, NonceRecord, NonceVariantRecord, OutputAssetRecord, PlutusDatumRecord, PlutusRedeemerRecord, PlutusWitnessRecord, PoolRegistrationRecord, PoolRetirementRecord, PositiveIntervalRecord, ProtocolParamUpdateRecord, RationalNumberRecord, RegCertRecord, RegDRepCertRecord, ResignCommitteeColdCertRecord, ScriptRefRecord, StakeCredential, StakeDelegationRecord, StakeDeregistrationRecord, StakeRegDelegCertRecord, StakeRegistrationRecord, StakeVoteDelegCertRecord, StakeVoteRegDelegCertRecord, TransactionRecord, TxInputRecord, TxOutputRecord, UnitIntervalRecord, UnRegCertRecord, UnRegDRepCertRecord, UpdateDRepCertRecord, UpdateRecord, VKeyWitnessRecord, VoteDelegCertRecord, VoteRegDelegCertRecord};
+use crate::model::{
+    AnchorRecord, AuthCommitteeHotCertRecord, BlockRecord, CertificateRecord, CostModelRecord,
+    CostModelsRecord, DRep, Era, EventData, ExUnitsRecord, GenesisKeyDelegationRecord,
+    LanguageVersionRecord, MetadataRecord, MetadatumRendition, MintRecord,
+    MoveInstantaneousRewardsCertRecord, NativeWitnessRecord, NonceRecord, NonceVariantRecord,
+    OutputAssetRecord, PlutusDatumRecord, PlutusRedeemerRecord, PlutusWitnessRecord,
+    PoolRegistrationRecord, PoolRetirementRecord, PositiveIntervalRecord,
+    ProtocolParamUpdateRecord, RationalNumberRecord, RegCertRecord, RegDRepCertRecord,
+    ResignCommitteeColdCertRecord, ScriptRefRecord, StakeCredential, StakeDelegationRecord,
+    StakeDeregistrationRecord, StakeRegDelegCertRecord, StakeRegistrationRecord,
+    StakeVoteDelegCertRecord, StakeVoteRegDelegCertRecord, TransactionRecord, TxInputRecord,
+    TxOutputRecord, UnRegCertRecord, UnRegDRepCertRecord, UnitIntervalRecord, UpdateDRepCertRecord,
+    UpdateRecord, VKeyWitnessRecord, VoteDelegCertRecord, VoteRegDelegCertRecord,
+};
 
+use crate::model::ScriptRefRecord::{NativeScript, PlutusV1, PlutusV2, PlutusV3};
 use crate::utils::time::TimeProvider;
 use crate::Error;
-use crate::model::ScriptRefRecord::{NativeScript, PlutusV1, PlutusV2, PlutusV3};
 
 use super::EventWriter;
 
@@ -82,7 +98,6 @@ fn to_option_anchor_record(anchor: &Option<alonzo::Anchor>) -> Option<AnchorReco
         None => None,
     }
 }
-
 
 fn ip_string_from_bytes(bytes: &[u8]) -> String {
     format!("{}.{}.{}.{}", bytes[0], bytes[1], bytes[2], bytes[3])
@@ -227,7 +242,7 @@ impl EventWriter {
             inlined_script: match &output.script_ref {
                 Some(script) => Some(self.to_script_ref_record(script)?),
                 None => None,
-            }
+            },
         })
     }
 
@@ -330,7 +345,10 @@ impl EventWriter {
         })
     }
 
-    pub fn to_script_ref_record(&self, script_ref: &ScriptRef) -> Result<ScriptRefRecord, crate::Error> {
+    pub fn to_script_ref_record(
+        &self,
+        script_ref: &ScriptRef,
+    ) -> Result<ScriptRefRecord, crate::Error> {
         match &script_ref.0 {
             Script::PlutusV1Script(script) => Ok(PlutusV1 {
                 script_hash: script.compute_hash().to_hex(),
@@ -363,19 +381,22 @@ impl EventWriter {
 
     pub fn to_certificate_record(&self, certificate: &Certificate) -> CertificateRecord {
         match certificate {
-            Certificate::StakeRegistration(credential) =>
+            Certificate::StakeRegistration(credential) => {
                 CertificateRecord::StakeRegistration(StakeRegistrationRecord {
-                credential: credential.into(),
-            }),
-            Certificate::StakeDeregistration(credential) =>
+                    credential: credential.into(),
+                })
+            }
+            Certificate::StakeDeregistration(credential) => {
                 CertificateRecord::StakeDeregistration(StakeDeregistrationRecord {
-                credential: credential.into(),
-            }),
-            Certificate::StakeDelegation(credential, pool) =>
-                CertificateRecord::StakeDelegation( StakeDelegationRecord {
-                credential: credential.into(),
-                pool_hash: pool.to_hex(),
-            }),
+                    credential: credential.into(),
+                })
+            }
+            Certificate::StakeDelegation(credential, pool) => {
+                CertificateRecord::StakeDelegation(StakeDelegationRecord {
+                    credential: credential.into(),
+                    pool_hash: pool.to_hex(),
+                })
+            }
             Certificate::PoolRegistration {
                 operator,
                 vrf_keyhash,
@@ -386,7 +407,7 @@ impl EventWriter {
                 pool_owners,
                 relays,
                 pool_metadata,
-            } => CertificateRecord::PoolRegistration (PoolRegistrationRecord {
+            } => CertificateRecord::PoolRegistration(PoolRegistrationRecord {
                 operator: operator.to_hex(),
                 vrf_keyhash: vrf_keyhash.to_hex(),
                 pledge: *pledge,
@@ -398,112 +419,113 @@ impl EventWriter {
                 pool_metadata: pool_metadata.as_ref().map(|m| m.url.clone()),
                 pool_metadata_hash: pool_metadata.as_ref().map(|m| m.hash.clone().to_hex()),
             }),
-            Certificate::PoolRetirement(pool, epoch) =>
-                CertificateRecord::PoolRetirement (PoolRetirementRecord {
-                pool: pool.to_hex(),
-                epoch: *epoch,
-            }),
-            Certificate::MoveInstantaneousRewardsCert(move_) =>
-                CertificateRecord::MoveInstantaneousRewardsCert( MoveInstantaneousRewardsCertRecord {
-                    from_reserves: matches!(move_.source, InstantaneousRewardSource::Reserves),
-                    from_treasury: matches!(move_.source, InstantaneousRewardSource::Treasury),
-                    to_stake_credentials: match &move_.target {
-                        InstantaneousRewardTarget::StakeCredentials(creds) => {
-                            let x = creds.iter().map(|(k, v)| (k.into(), *v)).collect();
-                            Some(x)
-                        }
-                        _ => None,
+            Certificate::PoolRetirement(pool, epoch) => {
+                CertificateRecord::PoolRetirement(PoolRetirementRecord {
+                    pool: pool.to_hex(),
+                    epoch: *epoch,
+                })
+            }
+            Certificate::MoveInstantaneousRewardsCert(move_) => {
+                CertificateRecord::MoveInstantaneousRewardsCert(
+                    MoveInstantaneousRewardsCertRecord {
+                        from_reserves: matches!(move_.source, InstantaneousRewardSource::Reserves),
+                        from_treasury: matches!(move_.source, InstantaneousRewardSource::Treasury),
+                        to_stake_credentials: match &move_.target {
+                            InstantaneousRewardTarget::StakeCredentials(creds) => {
+                                let x = creds.iter().map(|(k, v)| (k.into(), *v)).collect();
+                                Some(x)
+                            }
+                            _ => None,
+                        },
+                        to_other_pot: match move_.target {
+                            InstantaneousRewardTarget::OtherAccountingPot(x) => Some(x),
+                            _ => None,
+                        },
                     },
-                    to_other_pot: match move_.target {
-                        InstantaneousRewardTarget::OtherAccountingPot(x) => Some(x),
-                        _ => None,
-                    },
-                }),
-            Certificate::GenesisKeyDelegation(genesis_hash,
-                                              genesis_delegate_hash,
-                                              vrf_key_hash)
-            => CertificateRecord::GenesisKeyDelegation (GenesisKeyDelegationRecord {
+                )
+            }
+            Certificate::GenesisKeyDelegation(
+                genesis_hash,
+                genesis_delegate_hash,
+                vrf_key_hash,
+            ) => CertificateRecord::GenesisKeyDelegation(GenesisKeyDelegationRecord {
                 genesis_hash: genesis_hash.to_hex(),
                 genesis_delegate_hash: genesis_delegate_hash.to_hex(),
                 vrf_key_hash: vrf_key_hash.to_hex(),
             }),
-            Certificate::Reg(credential, coin) => CertificateRecord::RegCert(
-                RegCertRecord {
-                    credential: credential.into(),
-                    coin: *coin,
-                }
-            ),
-            Certificate::UnReg(credential, coin) => CertificateRecord::UnRegCert(
-                UnRegCertRecord {
-                    credential: credential.into(),
-                    coin: *coin,
-                }
-            ),
-            Certificate::VoteDeleg(credential, drep) => CertificateRecord::VoteDeleg(
-                VoteDelegCertRecord {
+            Certificate::Reg(credential, coin) => CertificateRecord::RegCert(RegCertRecord {
+                credential: credential.into(),
+                coin: *coin,
+            }),
+            Certificate::UnReg(credential, coin) => CertificateRecord::UnRegCert(UnRegCertRecord {
+                credential: credential.into(),
+                coin: *coin,
+            }),
+            Certificate::VoteDeleg(credential, drep) => {
+                CertificateRecord::VoteDeleg(VoteDelegCertRecord {
                     credential: credential.into(),
                     drep: drep.into(),
-                }
-            ),
-            Certificate::StakeVoteDeleg(credential, pool, drep) => CertificateRecord::StakeVoteDeleg(
-                StakeVoteDelegCertRecord {
+                })
+            }
+            Certificate::StakeVoteDeleg(credential, pool, drep) => {
+                CertificateRecord::StakeVoteDeleg(StakeVoteDelegCertRecord {
                     credential: credential.into(),
                     pool_keyhash: pool.to_hex(),
                     drep: drep.into(),
-                }
-            ),
-            Certificate::StakeRegDeleg(credential, pool, coin) => CertificateRecord::StakeRegDeleg(
-                StakeRegDelegCertRecord {
+                })
+            }
+            Certificate::StakeRegDeleg(credential, pool, coin) => {
+                CertificateRecord::StakeRegDeleg(StakeRegDelegCertRecord {
                     credential: credential.into(),
                     pool_keyhash: pool.to_hex(),
                     coin: *coin,
-                }
-            ),
-            Certificate::VoteRegDeleg(credential, drep, coin) => CertificateRecord::VoteRegDeleg(
-                VoteRegDelegCertRecord {
+                })
+            }
+            Certificate::VoteRegDeleg(credential, drep, coin) => {
+                CertificateRecord::VoteRegDeleg(VoteRegDelegCertRecord {
                     credential: credential.into(),
                     drep: drep.into(),
                     coin: *coin,
-                }
-            ),
-            Certificate::StakeVoteRegDeleg(credential, pool, drep, coin) => CertificateRecord::StakeVoteRegDeleg(
-                StakeVoteRegDelegCertRecord {
+                })
+            }
+            Certificate::StakeVoteRegDeleg(credential, pool, drep, coin) => {
+                CertificateRecord::StakeVoteRegDeleg(StakeVoteRegDelegCertRecord {
                     credential: credential.into(),
                     pool_keyhash: pool.to_hex(),
                     drep: drep.into(),
                     coin: *coin,
-                }
-            ),
-            Certificate::AuthCommitteeHot(cold, hot) => CertificateRecord::AuthCommitteeHot(
-                AuthCommitteeHotCertRecord {
+                })
+            }
+            Certificate::AuthCommitteeHot(cold, hot) => {
+                CertificateRecord::AuthCommitteeHot(AuthCommitteeHotCertRecord {
                     committee_cold_credential: cold.into(),
                     committee_hot_credential: hot.into(),
-                }
-            ),
-            Certificate::ResignCommitteeCold(cold) => CertificateRecord::ResignCommitteeCold(
-                ResignCommitteeColdCertRecord {
+                })
+            }
+            Certificate::ResignCommitteeCold(cold) => {
+                CertificateRecord::ResignCommitteeCold(ResignCommitteeColdCertRecord {
                     committee_cold_credential: cold.into(),
-                }
-            ),
-            Certificate::RegDRepCert(drep, coin, anchor) => CertificateRecord::RegDRepCert(
-                RegDRepCertRecord {
+                })
+            }
+            Certificate::RegDRepCert(drep, coin, anchor) => {
+                CertificateRecord::RegDRepCert(RegDRepCertRecord {
                     credential: drep.into(),
                     coin: *coin,
                     anchor: to_option_anchor_record(anchor),
-                }
-            ),
-            Certificate::UnRegDRepCert(drep, coin) => CertificateRecord::UnRegDRepCert(
-                UnRegDRepCertRecord {
+                })
+            }
+            Certificate::UnRegDRepCert(drep, coin) => {
+                CertificateRecord::UnRegDRepCert(UnRegDRepCertRecord {
                     credential: drep.into(),
                     coin: *coin,
-                }
-            ),
-            Certificate::UpdateDRepCert(credential, anchor) => CertificateRecord::UpdateDRepCert(
-                UpdateDRepCertRecord {
+                })
+            }
+            Certificate::UpdateDRepCert(credential, anchor) => {
+                CertificateRecord::UpdateDRepCert(UpdateDRepCertRecord {
                     credential: credential.into(),
                     anchor: to_option_anchor_record(anchor),
-                }
-            ),
+                })
+            }
         }
     }
 
@@ -514,24 +536,33 @@ impl EventWriter {
         }
     }
 
-    pub fn to_rational_number_record_option(&self, rational: &Option<RationalNumber>) -> Option<RationalNumberRecord> {
+    pub fn to_rational_number_record_option(
+        &self,
+        rational: &Option<RationalNumber>,
+    ) -> Option<RationalNumberRecord> {
         match rational {
             Some(rational) => Some(self.to_rational_number_record(rational)),
             None => None,
         }
     }
 
-    pub fn to_unit_interval_record(&self, interval: &Option<UnitInterval>) -> Option<UnitIntervalRecord> {
+    pub fn to_unit_interval_record(
+        &self,
+        interval: &Option<UnitInterval>,
+    ) -> Option<UnitIntervalRecord> {
         match interval {
-            Some(interval) => Some(
-                UnitIntervalRecord(interval.numerator as u64, interval.denominator)),
+            Some(interval) => Some(UnitIntervalRecord(
+                interval.numerator as u64,
+                interval.denominator,
+            )),
             None => None,
         }
-
     }
 
-    pub fn to_positive_interval_record(&self, interval: &PositiveInterval)
-        -> PositiveIntervalRecord {
+    pub fn to_positive_interval_record(
+        &self,
+        interval: &PositiveInterval,
+    ) -> PositiveIntervalRecord {
         PositiveIntervalRecord(interval.numerator as u64, interval.denominator)
     }
 
@@ -545,17 +576,21 @@ impl EventWriter {
         }
     }
 
-    pub fn to_cost_models_record(&self, cost_models: &Option<CostMdls>) -> Option<CostModelsRecord> {
+    pub fn to_cost_models_record(
+        &self,
+        cost_models: &Option<CostMdls>,
+    ) -> Option<CostModelsRecord> {
         match cost_models {
             Some(cost_models) => {
                 let mut cost_models_record = HashMap::new();
                 for cost_model_pair in cost_models.clone().to_vec() {
-                    let language_version_record = self.to_language_version_record(&cost_model_pair.0);
+                    let language_version_record =
+                        self.to_language_version_record(&cost_model_pair.0);
                     let cost_model_record = self.to_cost_model_record(cost_model_pair.1);
                     cost_models_record.insert(language_version_record, cost_model_record);
                 }
                 Some(CostModelsRecord(cost_models_record))
-            },
+            }
             None => None,
         }
     }
@@ -590,44 +625,49 @@ impl EventWriter {
     pub fn to_certificate_event(&self, certificate: &Certificate) -> EventData {
         let certificate_record = self.to_certificate_record(certificate);
         match certificate_record {
-            CertificateRecord::StakeRegistration(cert_record) =>
-                EventData::StakeRegistration(cert_record),
-            CertificateRecord::StakeDeregistration(cert_record) =>
-                EventData::StakeDeregistration(cert_record),
-            CertificateRecord::StakeDelegation(cert_record) =>
-                EventData::StakeDelegation(cert_record),
-            CertificateRecord::PoolRegistration(cert_record) =>
-                EventData::PoolRegistration(cert_record),
-            CertificateRecord::PoolRetirement(cert_record) =>
-                EventData::PoolRetirement(cert_record),
-            CertificateRecord::MoveInstantaneousRewardsCert(cert_record) =>
-                EventData::MoveInstantaneousRewardsCert(cert_record),
-            CertificateRecord::GenesisKeyDelegation(cert_record) =>
-                EventData::GenesisKeyDelegation(cert_record),
-            CertificateRecord::RegCert(cert_record) =>
-                EventData::RegCert(cert_record),
-            CertificateRecord::UnRegCert(cert_record) =>
-                EventData::UnRegCert(cert_record),
-            CertificateRecord::VoteDeleg(cert_record) =>
-                EventData::VoteDeleg(cert_record),
-            CertificateRecord::StakeVoteDeleg(cert_record) =>
-                EventData::StakeVoteDeleg(cert_record),
-            CertificateRecord::StakeRegDeleg(cert_record) =>
-                EventData::StakeRegDeleg(cert_record),
-            CertificateRecord::VoteRegDeleg(cert_record) =>
-                EventData::VoteRegDeleg(cert_record),
-            CertificateRecord::StakeVoteRegDeleg(cert_record) =>
-                EventData::StakeVoteRegDeleg(cert_record),
-            CertificateRecord::AuthCommitteeHot(cert_record) =>
-                EventData::AuthCommitteeHot(cert_record),
-            CertificateRecord::ResignCommitteeCold(cert_record) =>
-                EventData::ResignCommitteeCold(cert_record),
-            CertificateRecord::RegDRepCert(cert_record) =>
-                EventData::RegDRepCert(cert_record),
-            CertificateRecord::UnRegDRepCert(cert_record) =>
-                EventData::UnRegDRepCert(cert_record),
-            CertificateRecord::UpdateDRepCert(cert_record) =>
-                EventData::UpdateDRepCert(cert_record),
+            CertificateRecord::StakeRegistration(cert_record) => {
+                EventData::StakeRegistration(cert_record)
+            }
+            CertificateRecord::StakeDeregistration(cert_record) => {
+                EventData::StakeDeregistration(cert_record)
+            }
+            CertificateRecord::StakeDelegation(cert_record) => {
+                EventData::StakeDelegation(cert_record)
+            }
+            CertificateRecord::PoolRegistration(cert_record) => {
+                EventData::PoolRegistration(cert_record)
+            }
+            CertificateRecord::PoolRetirement(cert_record) => {
+                EventData::PoolRetirement(cert_record)
+            }
+            CertificateRecord::MoveInstantaneousRewardsCert(cert_record) => {
+                EventData::MoveInstantaneousRewardsCert(cert_record)
+            }
+            CertificateRecord::GenesisKeyDelegation(cert_record) => {
+                EventData::GenesisKeyDelegation(cert_record)
+            }
+            CertificateRecord::RegCert(cert_record) => EventData::RegCert(cert_record),
+            CertificateRecord::UnRegCert(cert_record) => EventData::UnRegCert(cert_record),
+            CertificateRecord::VoteDeleg(cert_record) => EventData::VoteDeleg(cert_record),
+            CertificateRecord::StakeVoteDeleg(cert_record) => {
+                EventData::StakeVoteDeleg(cert_record)
+            }
+            CertificateRecord::StakeRegDeleg(cert_record) => EventData::StakeRegDeleg(cert_record),
+            CertificateRecord::VoteRegDeleg(cert_record) => EventData::VoteRegDeleg(cert_record),
+            CertificateRecord::StakeVoteRegDeleg(cert_record) => {
+                EventData::StakeVoteRegDeleg(cert_record)
+            }
+            CertificateRecord::AuthCommitteeHot(cert_record) => {
+                EventData::AuthCommitteeHot(cert_record)
+            }
+            CertificateRecord::ResignCommitteeCold(cert_record) => {
+                EventData::ResignCommitteeCold(cert_record)
+            }
+            CertificateRecord::RegDRepCert(cert_record) => EventData::RegDRepCert(cert_record),
+            CertificateRecord::UnRegDRepCert(cert_record) => EventData::UnRegDRepCert(cert_record),
+            CertificateRecord::UpdateDRepCert(cert_record) => {
+                EventData::UpdateDRepCert(cert_record)
+            }
         }
     }
 
@@ -796,7 +836,10 @@ impl EventWriter {
         Ok(record)
     }
 
-    pub fn to_protocol_update_record(&self, update: &ProtocolParamUpdate) -> ProtocolParamUpdateRecord {
+    pub fn to_protocol_update_record(
+        &self,
+        update: &ProtocolParamUpdate,
+    ) -> ProtocolParamUpdateRecord {
         ProtocolParamUpdateRecord {
             minfee_a: update.minfee_a,
             minfee_b: update.minfee_b,
@@ -807,18 +850,21 @@ impl EventWriter {
             pool_deposit: update.pool_deposit,
             maximum_epoch: update.maximum_epoch,
             desired_number_of_stake_pools: update.desired_number_of_stake_pools,
-            pool_pledge_influence: self.to_rational_number_record_option(&update.pool_pledge_influence),
+            pool_pledge_influence: self
+                .to_rational_number_record_option(&update.pool_pledge_influence),
             expansion_rate: self.to_unit_interval_record(&update.expansion_rate),
             treasury_growth_rate: self.to_unit_interval_record(&update.treasury_growth_rate),
-            decentralization_constant: self.to_unit_interval_record(&update.decentralization_constant),
+            decentralization_constant: self
+                .to_unit_interval_record(&update.decentralization_constant),
             extra_entropy: self.to_nonce_record(&update.extra_entropy),
             protocol_version: update.protocol_version,
             min_pool_cost: update.min_pool_cost,
             ada_per_utxo_byte: update.ada_per_utxo_byte,
-            cost_models_for_script_languages: self.to_cost_models_record(&update.cost_models_for_script_languages),
+            cost_models_for_script_languages: self
+                .to_cost_models_record(&update.cost_models_for_script_languages),
             execution_costs: match &update.execution_costs {
                 Some(execution_costs) => Some(json!(execution_costs)),
-                None => None
+                None => None,
             },
             max_tx_ex_units: self.to_ex_units_record(&update.max_tx_ex_units),
             max_block_ex_units: self.to_ex_units_record(&update.max_block_ex_units),
@@ -834,7 +880,7 @@ impl EventWriter {
             updates.insert(update.0.to_hex(), self.to_protocol_update_record(&update.1));
         }
 
-        UpdateRecord{
+        UpdateRecord {
             proposed_protocol_parameter_updates: updates,
             epoch: update.epoch,
         }

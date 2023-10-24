@@ -1,3 +1,4 @@
+use pallas::ledger::primitives::alonzo::{Certificate, RequiredSigners};
 use pallas::{
     codec::utils::{KeepRaw, KeyValuePairs, MaybeIndefArray},
     ledger::{
@@ -14,8 +15,8 @@ use pallas::{
         traverse::OriginalHash,
     },
 };
-use pallas::ledger::primitives::alonzo::{Certificate, RequiredSigners};
 
+use crate::model::{CertificateRecord, RequiredSignerRecord};
 use crate::{
     model::{
         MetadataRecord, MintRecord, NativeWitnessRecord, OutputAssetRecord, PlutusDatumRecord,
@@ -24,7 +25,6 @@ use crate::{
     },
     Error,
 };
-use crate::model::{CertificateRecord, RequiredSignerRecord};
 
 use super::{map::ToHex, EventWriter};
 
@@ -234,7 +234,10 @@ impl EventWriter {
             .collect()
     }
 
-    pub fn collect_required_signers_records(&self, req_signers: &RequiredSigners) -> Result<Vec<RequiredSignerRecord>, Error> {
+    pub fn collect_required_signers_records(
+        &self,
+        req_signers: &RequiredSigners,
+    ) -> Result<Vec<RequiredSignerRecord>, Error> {
         let mut signers = vec![];
         for req_sign in req_signers {
             let hex = req_sign.to_hex();

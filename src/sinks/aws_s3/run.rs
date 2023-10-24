@@ -1,6 +1,6 @@
 use aws_sdk_s3::{types::ByteStream, Client};
-use std::sync::Arc;
 use serde_json::json;
+use std::sync::Arc;
 
 use crate::{
     model::{BlockRecord, EventData},
@@ -45,7 +45,7 @@ fn define_obj_key(prefix: &str, policy: &Naming, record: &BlockRecord) -> String
         Naming::Hash => format!("{}{}", prefix, record.hash),
         Naming::SlotHash => format!("{}{}.{}", prefix, record.slot, record.hash),
         Naming::BlockHash => format!("{}{}.{}", prefix, record.number, record.hash),
-        Naming::BlockNumber => format!( "{}", record.number),
+        Naming::BlockNumber => format!("{}", record.number),
         Naming::EpochHash => format!(
             "{}{}.{}",
             prefix,

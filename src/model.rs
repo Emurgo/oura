@@ -1,5 +1,5 @@
-use std::fmt::Display;
 use std::collections::HashMap;
+use std::fmt::Display;
 
 use merge::Merge;
 
@@ -257,7 +257,6 @@ pub enum CertificateRecord {
     RegDRepCert(RegDRepCertRecord),
     UnRegDRepCert(UnRegDRepCertRecord),
     UpdateDRepCert(UpdateDRepCertRecord),
-
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd)]
