@@ -17,11 +17,11 @@ use pallas::ledger::primitives::{
 use pallas::network::miniprotocols::Point;
 use serde_json::{json, Value as JsonValue};
 
-use crate::model::{BlockRecord, CertificateRecord, CostModelRecord, CostModelsRecord, Era, EventData, ExUnitsRecord, GenesisKeyDelegationRecord, LanguageVersionRecord, MetadataRecord, MetadatumRendition, MintRecord, MoveInstantaneousRewardsCertRecord, NativeWitnessRecord, NonceRecord, NonceVariantRecord, OutputAssetRecord, PlutusDatumRecord, PlutusRedeemerRecord, PlutusWitnessRecord, PoolRegistrationRecord, PoolRetirementRecord, PositiveIntervalRecord, ProtocolParamUpdateRecord, RationalNumberRecord, ScriptRefRecord, StakeCredential, StakeDelegationRecord, StakeDeregistrationRecord, StakeRegistrationRecord, TransactionRecord, TxInputRecord, TxOutputRecord, UnitIntervalRecord, UpdateRecord, VKeyWitnessRecord};
+use crate::model::{AnchorRecord, AuthCommitteeHotCertRecord, BlockRecord, CertificateRecord, CostModelRecord, CostModelsRecord, DRep, Era, EventData, ExUnitsRecord, GenesisKeyDelegationRecord, LanguageVersionRecord, MetadataRecord, MetadatumRendition, MintRecord, MoveInstantaneousRewardsCertRecord, NativeWitnessRecord, NonceRecord, NonceVariantRecord, OutputAssetRecord, PlutusDatumRecord, PlutusRedeemerRecord, PlutusWitnessRecord, PoolRegistrationRecord, PoolRetirementRecord, PositiveIntervalRecord, ProtocolParamUpdateRecord, RationalNumberRecord, RegCertRecord, RegDRepCertRecord, ResignCommitteeColdCertRecord, ScriptRefRecord, StakeCredential, StakeDelegationRecord, StakeDeregistrationRecord, StakeRegDelegCertRecord, StakeRegistrationRecord, StakeVoteDelegCertRecord, StakeVoteRegDelegCertRecord, TransactionRecord, TxInputRecord, TxOutputRecord, UnitIntervalRecord, UnRegCertRecord, UnRegDRepCertRecord, UpdateDRepCertRecord, UpdateRecord, VKeyWitnessRecord, VoteDelegCertRecord, VoteRegDelegCertRecord};
 
 use crate::utils::time::TimeProvider;
 use crate::Error;
-use crate::model::ScriptRefRecord::{NativeScript, PlutusV1, PlutusV2};
+use crate::model::ScriptRefRecord::{NativeScript, PlutusV1, PlutusV2, PlutusV3};
 
 use super::EventWriter;
 
@@ -55,6 +55,34 @@ impl From<&alonzo::StakeCredential> for StakeCredential {
         }
     }
 }
+
+impl From<&alonzo::DRep> for DRep {
+    fn from(other: &alonzo::DRep) -> Self {
+        match other {
+            alonzo::DRep::Key(x) => DRep::KeyHash(x.to_hex()),
+            alonzo::DRep::Script(x) => DRep::ScriptHash(x.to_hex()),
+            alonzo::DRep::Abstain => DRep::Abstain,
+            alonzo::DRep::NoConfidence => DRep::NoConfidence,
+        }
+    }
+}
+
+impl From<&alonzo::Anchor> for AnchorRecord {
+    fn from(other: &alonzo::Anchor) -> Self {
+        AnchorRecord {
+            url: other.0.clone(),
+            data_hash: other.1.to_hex(),
+        }
+    }
+}
+
+fn to_option_anchor_record(anchor: &Option<alonzo::Anchor>) -> Option<AnchorRecord> {
+    match anchor {
+        Some(anchor) => Some(anchor.into()),
+        None => None,
+    }
+}
+
 
 fn ip_string_from_bytes(bytes: &[u8]) -> String {
     format!("{}.{}.{}.{}", bytes[0], bytes[1], bytes[2], bytes[3])
@@ -312,6 +340,10 @@ impl EventWriter {
                 script_hash: script.compute_hash().to_hex(),
                 script_hex: script.as_ref().to_hex(),
             }),
+            Script::PlutusV3Script(script) => Ok(PlutusV3 {
+                script_hash: script.compute_hash().to_hex(),
+                script_hex: script.as_ref().to_hex(),
+            }),
             Script::NativeScript(script) => Ok(NativeScript {
                 policy_id: script.compute_hash().to_hex(),
                 script_json: script.to_json(),
@@ -395,6 +427,83 @@ impl EventWriter {
                 genesis_delegate_hash: genesis_delegate_hash.to_hex(),
                 vrf_key_hash: vrf_key_hash.to_hex(),
             }),
+            Certificate::Reg(credential, coin) => CertificateRecord::RegCert(
+                RegCertRecord {
+                    credential: credential.into(),
+                    coin: *coin,
+                }
+            ),
+            Certificate::UnReg(credential, coin) => CertificateRecord::UnRegCert(
+                UnRegCertRecord {
+                    credential: credential.into(),
+                    coin: *coin,
+                }
+            ),
+            Certificate::VoteDeleg(credential, drep) => CertificateRecord::VoteDeleg(
+                VoteDelegCertRecord {
+                    credential: credential.into(),
+                    drep: drep.into(),
+                }
+            ),
+            Certificate::StakeVoteDeleg(credential, pool, drep) => CertificateRecord::StakeVoteDeleg(
+                StakeVoteDelegCertRecord {
+                    credential: credential.into(),
+                    pool_keyhash: pool.to_hex(),
+                    drep: drep.into(),
+                }
+            ),
+            Certificate::StakeRegDeleg(credential, pool, coin) => CertificateRecord::StakeRegDeleg(
+                StakeRegDelegCertRecord {
+                    credential: credential.into(),
+                    pool_keyhash: pool.to_hex(),
+                    coin: *coin,
+                }
+            ),
+            Certificate::VoteRegDeleg(credential, drep, coin) => CertificateRecord::VoteRegDeleg(
+                VoteRegDelegCertRecord {
+                    credential: credential.into(),
+                    drep: drep.into(),
+                    coin: *coin,
+                }
+            ),
+            Certificate::StakeVoteRegDeleg(credential, pool, drep, coin) => CertificateRecord::StakeVoteRegDeleg(
+                StakeVoteRegDelegCertRecord {
+                    credential: credential.into(),
+                    pool_keyhash: pool.to_hex(),
+                    drep: drep.into(),
+                    coin: *coin,
+                }
+            ),
+            Certificate::AuthCommitteeHot(cold, hot) => CertificateRecord::AuthCommitteeHot(
+                AuthCommitteeHotCertRecord {
+                    committee_cold_credential: cold.into(),
+                    committee_hot_credential: hot.into(),
+                }
+            ),
+            Certificate::ResignCommitteeCold(cold) => CertificateRecord::ResignCommitteeCold(
+                ResignCommitteeColdCertRecord {
+                    committee_cold_credential: cold.into(),
+                }
+            ),
+            Certificate::RegDRepCert(drep, coin, anchor) => CertificateRecord::RegDRepCert(
+                RegDRepCertRecord {
+                    credential: drep.into(),
+                    coin: *coin,
+                    anchor: to_option_anchor_record(anchor),
+                }
+            ),
+            Certificate::UnRegDRepCert(drep, coin) => CertificateRecord::UnRegDRepCert(
+                UnRegDRepCertRecord {
+                    credential: drep.into(),
+                    coin: *coin,
+                }
+            ),
+            Certificate::UpdateDRepCert(credential, anchor) => CertificateRecord::UpdateDRepCert(
+                UpdateDRepCertRecord {
+                    credential: credential.into(),
+                    anchor: to_option_anchor_record(anchor),
+                }
+            ),
         }
     }
 
@@ -495,6 +604,30 @@ impl EventWriter {
                 EventData::MoveInstantaneousRewardsCert(cert_record),
             CertificateRecord::GenesisKeyDelegation(cert_record) =>
                 EventData::GenesisKeyDelegation(cert_record),
+            CertificateRecord::RegCert(cert_record) =>
+                EventData::RegCert(cert_record),
+            CertificateRecord::UnRegCert(cert_record) =>
+                EventData::UnRegCert(cert_record),
+            CertificateRecord::VoteDeleg(cert_record) =>
+                EventData::VoteDeleg(cert_record),
+            CertificateRecord::StakeVoteDeleg(cert_record) =>
+                EventData::StakeVoteDeleg(cert_record),
+            CertificateRecord::StakeRegDeleg(cert_record) =>
+                EventData::StakeRegDeleg(cert_record),
+            CertificateRecord::VoteRegDeleg(cert_record) =>
+                EventData::VoteRegDeleg(cert_record),
+            CertificateRecord::StakeVoteRegDeleg(cert_record) =>
+                EventData::StakeVoteRegDeleg(cert_record),
+            CertificateRecord::AuthCommitteeHot(cert_record) =>
+                EventData::AuthCommitteeHot(cert_record),
+            CertificateRecord::ResignCommitteeCold(cert_record) =>
+                EventData::ResignCommitteeCold(cert_record),
+            CertificateRecord::RegDRepCert(cert_record) =>
+                EventData::RegDRepCert(cert_record),
+            CertificateRecord::UnRegDRepCert(cert_record) =>
+                EventData::UnRegDRepCert(cert_record),
+            CertificateRecord::UpdateDRepCert(cert_record) =>
+                EventData::UpdateDRepCert(cert_record),
         }
     }
 

@@ -19,7 +19,7 @@ use crate::{
 };
 
 // TODO: these should come from Pallas
-use crate::utils::{PREPROD_MAGIC, PREVIEW_MAGIC};
+use crate::utils::{PREPROD_MAGIC, PREVIEW_MAGIC, SANCHO_MAGIC};
 
 #[derive(Debug, Deserialize, Clone)]
 pub enum BearerKind {
@@ -98,6 +98,7 @@ impl FromStr for MagicArg {
             "mainnet" => MagicArg(MAINNET_MAGIC),
             "preview" => MagicArg(PREVIEW_MAGIC),
             "preprod" => MagicArg(PREPROD_MAGIC),
+            "sancho" => MagicArg(SANCHO_MAGIC),
             _ => MagicArg(u64::from_str(s).map_err(|_| "can't parse magic value")?),
         };
 
