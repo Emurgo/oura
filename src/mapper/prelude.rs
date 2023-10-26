@@ -115,6 +115,7 @@ impl From<pallas::ledger::traverse::Era> for Era {
             pallas::ledger::traverse::Era::Mary => Era::Mary,
             pallas::ledger::traverse::Era::Alonzo => Era::Alonzo,
             pallas::ledger::traverse::Era::Babbage => Era::Babbage,
+            pallas::ledger::traverse::Era::Conway => Era::Babbage,
             _ => Era::Unknown,
         }
     }
