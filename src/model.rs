@@ -374,6 +374,7 @@ pub struct AuthCommitteeHotCertRecord {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ResignCommitteeColdCertRecord {
     pub committee_cold_credential: StakeCredential,
+    pub anchor: Option<AnchorRecord>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]

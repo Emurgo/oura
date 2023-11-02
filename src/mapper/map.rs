@@ -502,9 +502,10 @@ impl EventWriter {
                     committee_hot_credential: hot.into(),
                 })
             }
-            Certificate::ResignCommitteeCold(cold) => {
+            Certificate::ResignCommitteeCold(cold, anchor) => {
                 CertificateRecord::ResignCommitteeCold(ResignCommitteeColdCertRecord {
                     committee_cold_credential: cold.into(),
+                    anchor: to_option_anchor_record(anchor),
                 })
             }
             Certificate::RegDRepCert(drep, coin, anchor) => {
