@@ -1,5 +1,5 @@
-use std::fmt::Display;
 use std::collections::HashMap;
+use std::fmt::Display;
 
 use merge::Merge;
 
@@ -226,6 +226,10 @@ pub enum ScriptRefRecord {
         script_hash: String,
         script_hex: String,
     },
+    PlutusV3 {
+        script_hash: String,
+        script_hex: String,
+    },
     NativeScript {
         policy_id: String,
         script_json: JsonValue,
@@ -241,6 +245,18 @@ pub enum CertificateRecord {
     PoolRetirement(PoolRetirementRecord),
     GenesisKeyDelegation(GenesisKeyDelegationRecord),
     MoveInstantaneousRewardsCert(MoveInstantaneousRewardsCertRecord),
+    RegCert(RegCertRecord),
+    UnRegCert(UnRegCertRecord),
+    VoteDeleg(VoteDelegCertRecord),
+    StakeVoteDeleg(StakeVoteDelegCertRecord),
+    StakeRegDeleg(StakeRegDelegCertRecord),
+    VoteRegDeleg(VoteRegDelegCertRecord),
+    StakeVoteRegDeleg(StakeVoteRegDelegCertRecord),
+    AuthCommitteeHot(AuthCommitteeHotCertRecord),
+    ResignCommitteeCold(ResignCommitteeColdCertRecord),
+    RegDRepCert(RegDRepCertRecord),
+    UnRegDRepCert(UnRegDRepCertRecord),
+    UpdateDRepCert(UpdateDRepCertRecord),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd)]
@@ -287,6 +303,14 @@ pub struct GenesisKeyDelegationRecord {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum DRep {
+    KeyHash(String),
+    ScriptHash(String),
+    Abstain,
+    NoConfidence,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct MoveInstantaneousRewardsCertRecord {
     pub from_reserves: bool,
     pub from_treasury: bool,
@@ -295,8 +319,92 @@ pub struct MoveInstantaneousRewardsCertRecord {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct RegCertRecord {
+    pub credential: StakeCredential,
+    pub coin: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct UnRegCertRecord {
+    pub credential: StakeCredential,
+    pub coin: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VoteDelegCertRecord {
+    pub credential: StakeCredential,
+    pub drep: DRep,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct StakeVoteDelegCertRecord {
+    pub credential: StakeCredential,
+    pub pool_keyhash: String,
+    pub drep: DRep,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct StakeRegDelegCertRecord {
+    pub credential: StakeCredential,
+    pub pool_keyhash: String,
+    pub coin: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VoteRegDelegCertRecord {
+    pub credential: StakeCredential,
+    pub drep: DRep,
+    pub coin: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct StakeVoteRegDelegCertRecord {
+    pub credential: StakeCredential,
+    pub pool_keyhash: String,
+    pub drep: DRep,
+    pub coin: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct AuthCommitteeHotCertRecord {
+    pub committee_cold_credential: StakeCredential,
+    pub committee_hot_credential: StakeCredential,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ResignCommitteeColdCertRecord {
+    pub committee_cold_credential: StakeCredential,
+    pub anchor: Option<AnchorRecord>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct RegDRepCertRecord {
+    pub credential: StakeCredential,
+    pub coin: u64,
+    pub anchor: Option<AnchorRecord>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct UnRegDRepCertRecord {
+    pub credential: StakeCredential,
+    pub coin: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct UpdateDRepCertRecord {
+    pub credential: StakeCredential,
+    pub anchor: Option<AnchorRecord>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct AnchorRecord {
+    pub url: String,
+    pub data_hash: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RationalNumberRecord {
-    pub numerator: i64,
+    pub numerator: u64,
     pub denominator: u64,
 }
 
@@ -469,6 +577,19 @@ pub enum EventData {
     PoolRetirement(PoolRetirementRecord),
     GenesisKeyDelegation(GenesisKeyDelegationRecord),
     MoveInstantaneousRewardsCert(MoveInstantaneousRewardsCertRecord),
+    RegCert(RegCertRecord),
+    UnRegCert(UnRegCertRecord),
+    VoteDeleg(VoteDelegCertRecord),
+    StakeVoteDeleg(StakeVoteDelegCertRecord),
+    StakeRegDeleg(StakeRegDelegCertRecord),
+    VoteRegDeleg(VoteRegDelegCertRecord),
+    StakeVoteRegDeleg(StakeVoteRegDelegCertRecord),
+    AuthCommitteeHot(AuthCommitteeHotCertRecord),
+    ResignCommitteeCold(ResignCommitteeColdCertRecord),
+    RegDRepCert(RegDRepCertRecord),
+    UnRegDRepCert(UnRegDRepCertRecord),
+    UpdateDRepCert(UpdateDRepCertRecord),
+
     RollBack {
         block_slot: u64,
         block_hash: String,

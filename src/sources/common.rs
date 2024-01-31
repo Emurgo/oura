@@ -19,7 +19,7 @@ use crate::{
 };
 
 // TODO: these should come from Pallas
-use crate::utils::{PREPROD_MAGIC, PREVIEW_MAGIC};
+use crate::utils::{PREPROD_MAGIC, PREVIEW_MAGIC, SANCHO_MAGIC};
 
 #[derive(Debug, Deserialize, Clone)]
 pub enum BearerKind {
@@ -98,6 +98,7 @@ impl FromStr for MagicArg {
             "mainnet" => MagicArg(MAINNET_MAGIC),
             "preview" => MagicArg(PREVIEW_MAGIC),
             "preprod" => MagicArg(PREPROD_MAGIC),
+            "sancho" => MagicArg(SANCHO_MAGIC),
             _ => MagicArg(u64::from_str(s).map_err(|_| "can't parse magic value")?),
         };
 
@@ -351,6 +352,11 @@ pub fn unknown_block_to_events(writer: &EventWriter, body: &Vec<u8>) -> Result<(
                 writer
                     .crawl_from_babbage_cbor(body)
                     .ok_or_warn("error crawling babbage block for events");
+            }
+            Era::Conway => {
+                writer
+                    .crawl_from_babbage_cbor(body)
+                    .ok_or_warn("error crawling conway block for events");
             }
             x => {
                 return Err(format!("This version of Oura can't handle era: {x}").into());

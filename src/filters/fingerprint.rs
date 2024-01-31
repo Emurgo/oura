@@ -214,6 +214,66 @@ fn build_fingerprint(event: &Event, seed: u32) -> Result<String, Error> {
             .with_prefix("move")
             .append_optional(&event.context.tx_hash)?
             .append_optional_to_string(&event.context.certificate_idx)?,
+        EventData::RegCert { .. } => b
+            .with_slot(&event.context.slot)
+            .with_prefix("regc")
+            .append_optional(&event.context.tx_hash)?
+            .append_optional_to_string(&event.context.certificate_idx)?,
+        EventData::UnRegCert { .. } => b
+            .with_slot(&event.context.slot)
+            .with_prefix("unrc")
+            .append_optional(&event.context.tx_hash)?
+            .append_optional_to_string(&event.context.certificate_idx)?,
+        EventData::VoteDeleg { .. } => b
+            .with_slot(&event.context.slot)
+            .with_prefix("vode")
+            .append_optional(&event.context.tx_hash)?
+            .append_optional_to_string(&event.context.certificate_idx)?,
+        EventData::StakeVoteDeleg { .. } => b
+            .with_slot(&event.context.slot)
+            .with_prefix("stvo")
+            .append_optional(&event.context.tx_hash)?
+            .append_optional_to_string(&event.context.certificate_idx)?,
+        EventData::StakeRegDeleg { .. } => b
+            .with_slot(&event.context.slot)
+            .with_prefix("stre")
+            .append_optional(&event.context.tx_hash)?
+            .append_optional_to_string(&event.context.certificate_idx)?,
+        EventData::VoteRegDeleg { .. } => b
+            .with_slot(&event.context.slot)
+            .with_prefix("vore")
+            .append_optional(&event.context.tx_hash)?
+            .append_optional_to_string(&event.context.certificate_idx)?,
+        EventData::StakeVoteRegDeleg { .. } => b
+            .with_slot(&event.context.slot)
+            .with_prefix("stvr")
+            .append_optional(&event.context.tx_hash)?
+            .append_optional_to_string(&event.context.certificate_idx)?,
+        EventData::AuthCommitteeHot { .. } => b
+            .with_slot(&event.context.slot)
+            .with_prefix("auth")
+            .append_optional(&event.context.tx_hash)?
+            .append_optional_to_string(&event.context.certificate_idx)?,
+        EventData::ResignCommitteeCold { .. } => b
+            .with_slot(&event.context.slot)
+            .with_prefix("resi")
+            .append_optional(&event.context.tx_hash)?
+            .append_optional_to_string(&event.context.certificate_idx)?,
+        EventData::RegDRepCert { .. } => b
+            .with_slot(&event.context.slot)
+            .with_prefix("regd")
+            .append_optional(&event.context.tx_hash)?
+            .append_optional_to_string(&event.context.certificate_idx)?,
+        EventData::UnRegDRepCert { .. } => b
+            .with_slot(&event.context.slot)
+            .with_prefix("unrd")
+            .append_optional(&event.context.tx_hash)?
+            .append_optional_to_string(&event.context.certificate_idx)?,
+        EventData::UpdateDRepCert { .. } => b
+            .with_slot(&event.context.slot)
+            .with_prefix("updd")
+            .append_optional(&event.context.tx_hash)?
+            .append_optional_to_string(&event.context.certificate_idx)?,
         EventData::RollBack {
             block_slot,
             block_hash,

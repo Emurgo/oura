@@ -1,13 +1,20 @@
-use std::collections::HashMap;
 use pallas::codec::utils::KeepRaw;
+use std::collections::HashMap;
 
-use pallas::ledger::primitives::babbage::{AuxiliaryData, CostMdls, Language, MintedBlock, MintedDatumOption, MintedPostAlonzoTransactionOutput, MintedTransactionBody, MintedTransactionOutput, MintedWitnessSet, NetworkId, ProtocolParamUpdate, Update};
+use pallas::ledger::primitives::babbage::{
+    AuxiliaryData, CostMdls, Language, MintedBlock, MintedDatumOption,
+    MintedPostAlonzoTransactionOutput, MintedTransactionBody, MintedTransactionOutput,
+    MintedWitnessSet, NetworkId, ProtocolParamUpdate, Update,
+};
 
 use pallas::crypto::hash::Hash;
 use pallas::ledger::traverse::OriginalHash;
 use serde_json::json;
 
-use crate::model::{BlockRecord, CostModelRecord, CostModelsRecord, Era, LanguageVersionRecord, ProtocolParamUpdateRecord, TransactionRecord, UpdateRecord};
+use crate::model::{
+    BlockRecord, CostModelRecord, CostModelsRecord, Era, LanguageVersionRecord,
+    ProtocolParamUpdateRecord, TransactionRecord, UpdateRecord,
+};
 use crate::utils::time::TimeProvider;
 use crate::{
     model::{EventContext, EventData},
@@ -74,7 +81,7 @@ impl EventWriter {
         }
 
         // Add Collateral Stuff
-        let collateral_inputs = &body.collateral.as_deref();
+        let collateral_inputs = &body.collateral;
         record.collateral_input_count = collateral_inputs.iter().count();
         record.has_collateral_output = body.collateral_return.is_some();
 
@@ -85,7 +92,7 @@ impl EventWriter {
         }
 
         if let Some(req_signers) = &body.required_signers {
-            let req_signers = self.collect_required_signers_records(req_signers)?;
+            let req_signers = self.collect_required_signers_records(req_signers.into())?;
             record.required_signers_count = req_signers.len();
 
             if self.config.include_transaction_details {
@@ -103,7 +110,7 @@ impl EventWriter {
 
             // transaction_details collateral stuff
             record.collateral_inputs =
-                collateral_inputs.map(|inputs| self.collect_input_records(inputs));
+                collateral_inputs.as_ref().map(|inputs| self.collect_input_records(inputs));
 
             record.collateral_output = body.collateral_return.as_ref().map(|output| match output {
                 MintedTransactionOutput::Legacy(x) => self.to_legacy_output_record(x).unwrap(),
@@ -119,15 +126,15 @@ impl EventWriter {
 
             if let Some(witnesses) = witness_set {
                 record.vkey_witnesses = self
-                    .collect_vkey_witness_records(&witnesses.vkeywitness)?
+                    .collect_vkey_witness_records_babbage(&witnesses.vkeywitness)?
                     .into();
 
                 record.native_witnesses = self
-                    .collect_native_witness_records(&witnesses.native_script)?
+                    .collect_native_witness_records_babbage(&witnesses.native_script)?
                     .into();
 
                 record.plutus_witnesses = self
-                    .collect_plutus_v1_witness_records(&witnesses.plutus_v1_script)?
+                    .collect_plutus_v1_witness_records_babbage(&witnesses.plutus_v1_script)?
                     .into();
 
                 record.plutus_redeemers = self
@@ -135,7 +142,7 @@ impl EventWriter {
                     .into();
 
                 record.plutus_data = self
-                    .collect_witness_plutus_datum_records(&witnesses.plutus_data)?
+                    .collect_witness_plutus_datum_records_babbage(&witnesses.plutus_data)?
                     .into();
             }
 
@@ -271,7 +278,7 @@ impl EventWriter {
         }
 
         if let Some(datums) = &witness_set.plutus_data {
-            for datum in datums.iter() {
+            for datum in datums {
                 self.append_from(self.to_plutus_datum_record(datum)?)?;
             }
         }
@@ -383,7 +390,10 @@ impl EventWriter {
         Ok(())
     }
 
-    pub fn to_babbage_cost_models_record(&self, cost_models: &Option<CostMdls>) -> Option<CostModelsRecord> {
+    pub fn to_babbage_cost_models_record(
+        &self,
+        cost_models: &Option<CostMdls>,
+    ) -> Option<CostModelsRecord> {
         match cost_models {
             Some(cost_models) => {
                 let mut cost_models_record = HashMap::new();
@@ -399,19 +409,25 @@ impl EventWriter {
                 }
 
                 Some(CostModelsRecord(cost_models_record))
-            },
+            }
             None => None,
         }
     }
 
-    pub fn to_babbage_language_version_record(&self, language_version: &Language) -> LanguageVersionRecord {
+    pub fn to_babbage_language_version_record(
+        &self,
+        language_version: &Language,
+    ) -> LanguageVersionRecord {
         match language_version {
             Language::PlutusV1 => LanguageVersionRecord::PlutusV1,
             Language::PlutusV2 => LanguageVersionRecord::PlutusV2,
         }
     }
 
-    pub fn to_babbage_protocol_update_record(&self, update: &ProtocolParamUpdate) -> ProtocolParamUpdateRecord {
+    pub fn to_babbage_protocol_update_record(
+        &self,
+        update: &ProtocolParamUpdate,
+    ) -> ProtocolParamUpdateRecord {
         ProtocolParamUpdateRecord {
             minfee_a: update.minfee_a,
             minfee_b: update.minfee_b,
@@ -422,7 +438,8 @@ impl EventWriter {
             pool_deposit: update.pool_deposit,
             maximum_epoch: update.maximum_epoch,
             desired_number_of_stake_pools: update.desired_number_of_stake_pools,
-            pool_pledge_influence: self.to_rational_number_record_option(&update.pool_pledge_influence),
+            pool_pledge_influence: self
+                .to_rational_number_record_option(&update.pool_pledge_influence),
             expansion_rate: self.to_unit_interval_record(&update.expansion_rate),
             treasury_growth_rate: self.to_unit_interval_record(&update.treasury_growth_rate),
             decentralization_constant: None,
@@ -430,10 +447,11 @@ impl EventWriter {
             protocol_version: update.protocol_version,
             min_pool_cost: update.min_pool_cost,
             ada_per_utxo_byte: update.ada_per_utxo_byte,
-            cost_models_for_script_languages: self.to_babbage_cost_models_record(&update.cost_models_for_script_languages),
+            cost_models_for_script_languages: self
+                .to_babbage_cost_models_record(&update.cost_models_for_script_languages),
             execution_costs: match &update.execution_costs {
                 Some(execution_costs) => Some(json!(execution_costs)),
-                None => None
+                None => None,
             },
             max_tx_ex_units: self.to_ex_units_record(&update.max_tx_ex_units),
             max_block_ex_units: self.to_ex_units_record(&update.max_block_ex_units),
@@ -446,10 +464,13 @@ impl EventWriter {
     pub fn to_babbage_update_record(&self, update: &Update) -> UpdateRecord {
         let mut updates = HashMap::new();
         for update in update.proposed_protocol_parameter_updates.clone().to_vec() {
-            updates.insert(update.0.to_hex(), self.to_babbage_protocol_update_record(&update.1));
+            updates.insert(
+                update.0.to_hex(),
+                self.to_babbage_protocol_update_record(&update.1),
+            );
         }
 
-        UpdateRecord{
+        UpdateRecord {
             proposed_protocol_parameter_updates: updates,
             epoch: update.epoch,
         }

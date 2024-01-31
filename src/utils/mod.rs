@@ -13,6 +13,8 @@ use pallas::network::miniprotocols::{Point, MAINNET_MAGIC, TESTNET_MAGIC};
 pub const PREPROD_MAGIC: u64 = 1;
 pub const PREVIEW_MAGIC: u64 = 2;
 
+pub const SANCHO_MAGIC: u64 = 4;
+
 use serde::{Deserialize, Serialize};
 
 use crate::{model::Event, utils::time::NaiveProvider as NaiveTime};
@@ -144,6 +146,24 @@ impl ChainWellKnownInfo {
             adahandle_policy: "".to_string(),
         }
     }
+    pub fn sancho() -> Self {
+        ChainWellKnownInfo {
+            byron_epoch_length: 432000,
+            byron_slot_length: 20,
+            byron_known_slot: 0,
+            byron_known_hash: "9ad7ff320c9cf74e0f5ee78d22a85ce42bb0a487d0506bf60cfb5a91ea4497d2"
+                .to_string(),
+            byron_known_time: 1654041600,
+            shelley_epoch_length: 432000,
+            shelley_slot_length: 1,
+            shelley_known_slot: 86400,
+            shelley_known_hash: "c971bfb21d2732457f9febf79d9b02b20b9a3bef12c561a78b818bcb8b35a574"
+                .to_string(),
+            shelley_known_time: 1655769600,
+            address_hrp: "addr_test".to_string(),
+            adahandle_policy: "".to_string(),
+        }
+    }
 
     /// Try to identify the chain based on the specified magic value.
     pub fn try_from_magic(magic: u64) -> Result<ChainWellKnownInfo, Error> {
@@ -152,6 +172,7 @@ impl ChainWellKnownInfo {
             TESTNET_MAGIC => Ok(Self::testnet()),
             PREVIEW_MAGIC => Ok(Self::preview()),
             PREPROD_MAGIC => Ok(Self::preprod()),
+            SANCHO_MAGIC => Ok(Self::sancho()),
             _ => Err(format!("can't identify chain from specified magic value: {magic}").into()),
         }
     }

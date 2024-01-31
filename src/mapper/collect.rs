@@ -1,3 +1,5 @@
+use std::option::IntoIter;
+use pallas::ledger::primitives::alonzo::{AddrKeyhash, AddrKeyhashes, Certificates, RequiredSigners, TransactionInputs};
 use pallas::{
     codec::utils::{KeepRaw, KeyValuePairs, MaybeIndefArray},
     ledger::{
@@ -14,8 +16,9 @@ use pallas::{
         traverse::OriginalHash,
     },
 };
-use pallas::ledger::primitives::alonzo::{Certificate, RequiredSigners};
+use pallas::ledger::primitives::babbage::{KeepRawPlutusDatas, NativeScripts, PlutusV1Scripts, VKeyWitnesses};
 
+use crate::model::{CertificateRecord, RequiredSignerRecord};
 use crate::{
     model::{
         MetadataRecord, MintRecord, NativeWitnessRecord, OutputAssetRecord, PlutusDatumRecord,
@@ -24,12 +27,11 @@ use crate::{
     },
     Error,
 };
-use crate::model::{CertificateRecord, RequiredSignerRecord};
 
 use super::{map::ToHex, EventWriter};
 
 impl EventWriter {
-    pub fn collect_input_records(&self, source: &[TransactionInput]) -> Vec<TxInputRecord> {
+    pub fn collect_input_records(&self, source: &TransactionInputs) -> Vec<TxInputRecord> {
         source
             .iter()
             .map(|i| self.to_transaction_input_record(i))
@@ -95,7 +97,7 @@ impl EventWriter {
 
     pub fn collect_certificate_records(
         &self,
-        certificates: &Vec<Certificate>,
+        certificates: &Certificates,
     ) -> Vec<CertificateRecord> {
         certificates
             .iter()
@@ -148,6 +150,16 @@ impl EventWriter {
         }
     }
 
+    pub fn collect_vkey_witness_records_babbage(
+        &self,
+        witness_set: &Option<VKeyWitnesses>,
+    ) -> Result<Vec<VKeyWitnessRecord>, Error> {
+        match witness_set {
+            Some(all) => all.iter().map(|i| self.to_vkey_witness_record(i)).collect(),
+            None => Ok(vec![]),
+        }
+    }
+
     pub fn collect_native_witness_records(
         &self,
         witness_set: &Option<Vec<NativeScript>>,
@@ -161,9 +173,35 @@ impl EventWriter {
         }
     }
 
+    pub fn collect_native_witness_records_babbage(
+        &self,
+        witness_set: &Option<NativeScripts>,
+    ) -> Result<Vec<NativeWitnessRecord>, Error> {
+        match witness_set {
+            Some(all) => all
+                .iter()
+                .map(|i| self.to_native_witness_record(i))
+                .collect(),
+            None => Ok(vec![]),
+        }
+    }
+
     pub fn collect_plutus_v1_witness_records(
         &self,
         witness_set: &Option<Vec<PlutusScript>>,
+    ) -> Result<Vec<PlutusWitnessRecord>, Error> {
+        match &witness_set {
+            Some(all) => all
+                .iter()
+                .map(|i| self.to_plutus_v1_witness_record(i))
+                .collect(),
+            None => Ok(vec![]),
+        }
+    }
+
+    pub fn collect_plutus_v1_witness_records_babbage(
+        &self,
+        witness_set: &Option<PlutusV1Scripts>,
     ) -> Result<Vec<PlutusWitnessRecord>, Error> {
         match &witness_set {
             Some(all) => all
@@ -210,6 +248,16 @@ impl EventWriter {
         }
     }
 
+    pub fn collect_witness_plutus_datum_records_babbage(
+        &self,
+        witness_set: &Option<KeepRawPlutusDatas>,
+    ) -> Result<Vec<PlutusDatumRecord>, Error> {
+        match &witness_set {
+            Some(all) => all.into_iter().map(|i| self.to_plutus_datum_record(i)).collect(),
+            None => Ok(vec![]),
+        }
+    }
+
     pub fn collect_shelley_tx_records(
         &self,
         block: &MintedBlock,
@@ -234,7 +282,10 @@ impl EventWriter {
             .collect()
     }
 
-    pub fn collect_required_signers_records(&self, req_signers: &RequiredSigners) -> Result<Vec<RequiredSignerRecord>, Error> {
+    pub fn collect_required_signers_records(
+        &self,
+        req_signers: &Vec<AddrKeyhash>,
+    ) -> Result<Vec<RequiredSignerRecord>, Error> {
         let mut signers = vec![];
         for req_sign in req_signers {
             let hex = req_sign.to_hex();
