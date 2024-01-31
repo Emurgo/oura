@@ -97,7 +97,7 @@ impl EventWriter {
 
     pub fn collect_certificate_records(
         &self,
-        certificates: &Vec<Certificate>,
+        certificates: &Certificates,
     ) -> Vec<CertificateRecord> {
         certificates
             .iter()
