@@ -81,7 +81,7 @@ impl EventWriter {
         }
 
         // Add Collateral Stuff
-        let collateral_inputs = &body.collateral.as_deref();
+        let collateral_inputs = &body.collateral;
         record.collateral_input_count = collateral_inputs.iter().count();
         record.has_collateral_output = body.collateral_return.is_some();
 
@@ -92,7 +92,7 @@ impl EventWriter {
         }
 
         if let Some(req_signers) = &body.required_signers {
-            let req_signers = self.collect_required_signers_records(req_signers)?;
+            let req_signers = self.collect_required_signers_records(req_signers.into())?;
             record.required_signers_count = req_signers.len();
 
             if self.config.include_transaction_details {
@@ -110,7 +110,7 @@ impl EventWriter {
 
             // transaction_details collateral stuff
             record.collateral_inputs =
-                collateral_inputs.map(|inputs| self.collect_input_records(inputs));
+                collateral_inputs.as_ref().map(|inputs| self.collect_input_records(inputs));
 
             record.collateral_output = body.collateral_return.as_ref().map(|output| match output {
                 MintedTransactionOutput::Legacy(x) => self.to_legacy_output_record(x).unwrap(),
@@ -126,15 +126,15 @@ impl EventWriter {
 
             if let Some(witnesses) = witness_set {
                 record.vkey_witnesses = self
-                    .collect_vkey_witness_records(&witnesses.vkeywitness)?
+                    .collect_vkey_witness_records_babbage(&witnesses.vkeywitness)?
                     .into();
 
                 record.native_witnesses = self
-                    .collect_native_witness_records(&witnesses.native_script)?
+                    .collect_native_witness_records_babbage(&witnesses.native_script)?
                     .into();
 
                 record.plutus_witnesses = self
-                    .collect_plutus_v1_witness_records(&witnesses.plutus_v1_script)?
+                    .collect_plutus_v1_witness_records_babbage(&witnesses.plutus_v1_script)?
                     .into();
 
                 record.plutus_redeemers = self
@@ -142,7 +142,7 @@ impl EventWriter {
                     .into();
 
                 record.plutus_data = self
-                    .collect_witness_plutus_datum_records(&witnesses.plutus_data)?
+                    .collect_witness_plutus_datum_records_babbage(&witnesses.plutus_data)?
                     .into();
             }
 
@@ -278,7 +278,7 @@ impl EventWriter {
         }
 
         if let Some(datums) = &witness_set.plutus_data {
-            for datum in datums.iter() {
+            for datum in datums {
                 self.append_from(self.to_plutus_datum_record(datum)?)?;
             }
         }
