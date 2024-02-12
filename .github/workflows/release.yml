@@ -38,10 +38,6 @@ jobs:
             os: windows-latest
             name: oura-x86_64-pc-windows-msvc.zip
 
-          - target: aarch64-pc-windows-msvc
-            os: windows-latest
-            name: oura-aarch64-pc-windows-msvc.zip
-
     runs-on: ${{ matrix.os }}
     continue-on-error: true
     steps:
@@ -146,4 +142,4 @@ jobs:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
           AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
           BUCKET_PATH: "/" 
-          DIST_LOCATION_CODE: oura-*/oura-*
+          DIST_LOCATION_CODE: ./oura*
