@@ -142,4 +142,4 @@ jobs:
           AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
           AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
           BUCKET_PATH: "/" 
-          DIST_LOCATION_CODE: ./oura*
+          DIST_LOCATION_CODE: ./
