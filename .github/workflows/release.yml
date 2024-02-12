@@ -107,7 +107,7 @@ jobs:
 
   github_release:
     name: Create GitHub Release
-    needs: [binary_build, container_build]
+    needs: [binary_build]
     runs-on: ubuntu-latest
     steps:
       - name: Setup | Checkout
