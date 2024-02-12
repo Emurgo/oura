@@ -1,10 +1,17 @@
 use std::fmt::{Display, Write};
 
 use crossterm::style::{Attribute, Color, Stylize};
-use pallas::network::miniprotocols::Point;
 use unicode_truncate::UnicodeTruncateStr;
 
-use crate::{framework::legacy_v1::*, framework::*};
+use crate::{
+    model::{
+        BlockRecord, CIP15AssetRecord, CIP25AssetRecord, Event, EventData, MetadataRecord,
+        MintRecord, NativeWitnessRecord, OutputAssetRecord, PlutusDatumRecord,
+        PlutusRedeemerRecord, PlutusWitnessRecord, TransactionRecord, TxInputRecord,
+        TxOutputRecord, VKeyWitnessRecord,
+    },
+    utils::Utils,
+};
 
 pub struct LogLine {
     prefix: &'static str,
@@ -17,7 +24,7 @@ pub struct LogLine {
 
 impl LogLine {
     fn new_raw(
-        source: &legacy_v1::Event,
+        source: &Event,
         prefix: &'static str,
         color: Color,
         max_width: Option<usize>,
@@ -32,12 +39,10 @@ impl LogLine {
             block_num: source.context.block_number,
         }
     }
+}
 
-    pub fn new_from_legacy_v1(
-        source: &legacy_v1::Event,
-        max_width: Option<usize>,
-        adahandle_policy: &str,
-    ) -> LogLine {
+impl LogLine {
+    pub fn new(source: &Event, max_width: Option<usize>, utils: &Utils) -> LogLine {
         match &source.data {
             EventData::Block(BlockRecord {
                 era,
@@ -118,7 +123,7 @@ impl LogLine {
                 asset,
                 asset_ascii,
                 ..
-            }) if policy == adahandle_policy => LogLine::new_raw(
+            }) if policy == &utils.well_known.adahandle_policy => LogLine::new_raw(
                 source,
                 "$HNDL",
                 Color::DarkGreen,
@@ -213,75 +218,143 @@ impl LogLine {
                 max_width,
                 format!("{{ vkey: {vkey_hex} }}"),
             ),
-            EventData::StakeRegistration { credential } => LogLine::new_raw(
+            EventData::StakeRegistration(cert) => LogLine::new_raw(
                 source,
                 "STAKE+",
                 Color::Magenta,
                 max_width,
-                format!("{{ credential: {credential:?} }}"),
+                format!("{{ credential: {0:?} }}", cert.credential),
             ),
-            EventData::StakeDeregistration { credential } => LogLine::new_raw(
+            EventData::StakeDeregistration(cert) => LogLine::new_raw(
                 source,
                 "STAKE-",
                 Color::DarkMagenta,
                 max_width,
-                format!("{{ credential: {credential:?} }}"),
+                format!("{{ credential: {0:?} }}", cert.credential),
             ),
-            EventData::StakeDelegation {
-                credential,
-                pool_hash,
-            } => LogLine::new_raw(
+            EventData::StakeDelegation(cert) => LogLine::new_raw(
                 source,
                 "DELE",
                 Color::Magenta,
                 max_width,
-                format!("{{ credential: {credential:?}, pool: {pool_hash} }}"),
+                format!("{{ credential: {0:?}, pool: {1} }}", cert.credential, cert.pool_hash),
             ),
-            EventData::PoolRegistration {
-                operator,
-                vrf_keyhash: _,
-                pledge,
-                cost,
-                margin,
-                reward_account: _,
-                pool_owners: _,
-                relays: _,
-                pool_metadata,
-                pool_metadata_hash: _,
-            } => LogLine::new_raw(
+            EventData::PoolRegistration(cert) => LogLine::new_raw(
                 source,
                 "POOL+",
                 Color::Magenta,
                 max_width,
                 format!(
-                    "{{ operator: {operator}, pledge: {pledge}, cost: {cost}, margin: {margin}, metadata: {pool_metadata:?} }}"),
+                    "{{ operator: {0}, pledge: {1}, cost: {2}, margin: {{ numerator: {3}, denominator: {4} }}, metadata: {5:?} }}",
+                    cert.operator, cert.pledge, cert.cost, cert.margin.numerator, cert.margin.denominator, cert.pool_metadata),
             ),
-            EventData::PoolRetirement { pool, epoch } => LogLine::new_raw(
+            EventData::PoolRetirement(cert) => LogLine::new_raw(
                 source,
                 "POOL-",
                 Color::DarkMagenta,
                 max_width,
-                format!("{{ pool: {pool}, epoch: {epoch} }}"),
+                format!("{{ pool: {0}, epoch: {1} }}", cert.pool, cert.epoch),
             ),
-            EventData::GenesisKeyDelegation { } => LogLine::new_raw(
+            EventData::GenesisKeyDelegation(cert) => LogLine::new_raw(
                 source,
                 "GENESIS",
                 Color::Magenta,
                 max_width,
-                "{{ ... }}".to_string(),
+                format!("{{ genesis_hash: {0}, genesis_delegate_hash: {1}, vrf_key_hash: {2} }}",
+                cert.genesis_hash, cert.genesis_delegate_hash, cert.vrf_key_hash),
             ),
-            EventData::MoveInstantaneousRewardsCert {
-                from_reserves,
-                from_treasury,
-                to_stake_credentials,
-                to_other_pot,
-            } => LogLine::new_raw(
+            EventData::MoveInstantaneousRewardsCert(cert) => LogLine::new_raw(
                 source,
                 "MOVE",
                 Color::Magenta,
                 max_width,
                 format!(
-                    "{{ reserves: {from_reserves}, treasury: {from_treasury}, to_credentials: {to_stake_credentials:?}, to_other_pot: {to_other_pot:?} }}"),
+                    "{{ reserves: {0}, treasury: {1}, to_credentials: {2:?}, to_other_pot: {3:?} }}",
+                cert.from_reserves, cert.from_treasury, cert.to_stake_credentials, cert.to_other_pot),
+            ),
+            EventData::RegCert(cert) => LogLine::new_raw(
+                source,
+                "REG",
+                Color::Magenta,
+                max_width,
+                format!("{0:?}", serde_json::to_string(&cert).unwrap()),
+            ),
+            EventData::UnRegCert(cert) => LogLine::new_raw(
+                source,
+                "UNREG",
+                Color::DarkMagenta,
+                max_width,
+                format!("{0:?}", serde_json::to_string(&cert).unwrap()),
+            ),
+            EventData::VoteDeleg(cert) => LogLine::new_raw(
+                source,
+                "VOTE",
+                Color::Magenta,
+                max_width,
+                format!("{0:?}", serde_json::to_string(&cert).unwrap()),
+            ),
+            EventData::StakeVoteDeleg(cert) => LogLine::new_raw(
+                source,
+                "STAKEVOTE",
+                Color::Magenta,
+                max_width,
+                format!("{0:?}", serde_json::to_string(&cert).unwrap()),
+            ),
+            EventData::StakeRegDeleg(cert) => LogLine::new_raw(
+                source,
+                "STAKEREG",
+                Color::Magenta,
+                max_width,
+                format!("{0:?}", serde_json::to_string(&cert).unwrap()),
+            ),
+            EventData::VoteRegDeleg(cert) => LogLine::new_raw(
+                source,
+                "VOTEREG",
+                Color::Magenta,
+                max_width,
+                format!("{0:?}", serde_json::to_string(&cert).unwrap()),
+            ),
+            EventData::StakeVoteRegDeleg(cert) => LogLine::new_raw(
+                source,
+                "STAKEVOTEREG",
+                Color::Magenta,
+                max_width,
+                format!("{0:?}", serde_json::to_string(&cert).unwrap()),
+            ),
+            EventData::AuthCommitteeHot(cert) => LogLine::new_raw(
+                source,
+                "AUTHHOT",
+                Color::Magenta,
+                max_width,
+                format!("{0:?}", serde_json::to_string(&cert).unwrap()),
+            ),
+            EventData::ResignCommitteeCold(cert) => LogLine::new_raw(
+                source,
+                "RESIGNCOLD",
+                Color::DarkMagenta,
+                max_width,
+                format!("{0:?}", serde_json::to_string(&cert).unwrap()),
+            ),
+            EventData::RegDRepCert(cert) => LogLine::new_raw(
+                source,
+                "REGDREP",
+                Color::Magenta,
+                max_width,
+                format!("{0:?}", serde_json::to_string(&cert).unwrap()),
+            ),
+            EventData::UnRegDRepCert(cert) => LogLine::new_raw(
+                source,
+                "UNREGDREP",
+                Color::DarkMagenta,
+                max_width,
+                format!("{0:?}", serde_json::to_string(&cert).unwrap()),
+            ),
+            EventData::UpdateDRepCert(cert) => LogLine::new_raw(
+                source,
+                "UPDATEDREP",
+                Color::Magenta,
+                max_width,
+                format!("{0:?}", serde_json::to_string(&cert).unwrap()),
             ),
             EventData::RollBack {
                 block_slot,
@@ -331,40 +404,6 @@ impl LogLine {
                 format!("{{ voting key: {voting_key}, stake pub: {stake_pub} }}"),
             ),
         }
-    }
-
-    pub fn new_apply(
-        source: &Record,
-        max_width: Option<usize>,
-        adahandle_policy: &Option<String>,
-    ) -> LogLine {
-        match source {
-            Record::OuraV1Event(evt) => LogLine::new_from_legacy_v1(
-                evt,
-                max_width,
-                adahandle_policy.as_deref().unwrap_or_default(),
-            ),
-            _ => todo!(),
-        }
-    }
-
-    pub fn new_undo(
-        source: &Record,
-        max_width: Option<usize>,
-        adahandle_policy: &Option<String>,
-    ) -> LogLine {
-        match source {
-            Record::OuraV1Event(evt) => LogLine::new_from_legacy_v1(
-                evt,
-                max_width,
-                adahandle_policy.as_deref().unwrap_or_default(),
-            ),
-            _ => todo!(),
-        }
-    }
-
-    pub fn new_reset(_point: Point) -> LogLine {
-        todo!()
     }
 }
 

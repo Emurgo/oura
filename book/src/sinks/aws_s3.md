@@ -29,7 +29,7 @@ max_retries = 5
 - `bucket`: The name of the bucket to store the blocks.
 - `prefix`: A prefix to prepend on each object's key.
 - `naming`: One of the available naming conventions (see section below)
-- `content`: Either `Cbor` for binary encoding or `CborHex` for plain text hex representation of the CBOR
+- `content`: Either `Cbor` for binary encoding or `CborHex` for plain text hex representation of the CBOR. Or `Json` for json string representation.
 - `max_retries`: The max number of send retries before exiting the pipeline with an error.
 
 IMPORTANT: For this sink to work correctly, the `include_block_cbor` option should be enabled in the source sink configuration (see [mapper options](../advanced/mapper_options.md)).
@@ -42,6 +42,7 @@ S3 Buckets allow the user to query by object prefix. It's important to use a nam
 - `Hash`: formats the key using `"{hash}"`
 - `SlotHash`: formats the key using `"{slot}.{hash}"`
 - `BlockHash`: formats the key using `"{block_num}.{hash}"`
+- `BlockNumber`: formats the key using `"{block_num}"`
 - `EpochHash`: formats the key using `"{epoch}.{hash}"`
 - `EpochSlotHash`: formats the key using `"{epoch}.{slot}.{hash}"`
 - `EpochBlockHash`: formats the key using `"{epoch}.{block_num}.{hash}"`
@@ -52,6 +53,7 @@ The sink provides two options for encoding the content of the object:
 
 - `Cbor`: the S3 object will contain the raw, unmodified CBOR value in binary format. The content type of the object in this case will be "application/cbor". 
 - `CborHex`: the S3 object will contain the CBOR payload of the block encoded as a hex string. The content type of the object in this case will be "text/plain". 
+- `Json`: the S3 object will contain block encoded as a json string. The content type of the object in this case will be "application/json".
 
 
 ## Metadata
