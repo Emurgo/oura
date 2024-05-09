@@ -12,7 +12,7 @@ authors = ["Santiago Carmuega <santiago@carmuega.me>"]
 
 
 [dependencies]
-pallas = { git = "https://github.com/Emurgo/pallas", tag = "conway_2" }
+pallas = { git = "https://github.com/Emurgo/pallas", tag = "conway_4" }
 # pallas = { git = "https://github.com/txpipe/pallas" }
 # pallas = { path = "../../pallas/pallas" }
 hex = "0.4.3"

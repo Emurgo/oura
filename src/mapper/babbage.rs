@@ -138,7 +138,7 @@ impl EventWriter {
                     .into();
 
                 record.plutus_redeemers = self
-                    .collect_plutus_redeemer_records(&witnesses.redeemer)?
+                    .collect_plutus_redeemer_records_2(&witnesses.redeemer)?
                     .into();
 
                 record.plutus_data = self

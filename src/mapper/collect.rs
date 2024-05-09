@@ -16,7 +16,7 @@ use pallas::{
         traverse::OriginalHash,
     },
 };
-use pallas::ledger::primitives::babbage::{KeepRawPlutusDatas, NativeScripts, PlutusV1Scripts, VKeyWitnesses};
+use pallas::ledger::primitives::babbage::{KeepRawPlutusDatas, NativeScripts, PlutusV1Scripts, Redeemers, VKeyWitnesses};
 
 use crate::model::{CertificateRecord, RequiredSignerRecord};
 use crate::{
@@ -228,6 +228,19 @@ impl EventWriter {
     pub fn collect_plutus_redeemer_records(
         &self,
         witness_set: &Option<Vec<Redeemer>>,
+    ) -> Result<Vec<PlutusRedeemerRecord>, Error> {
+        match &witness_set {
+            Some(all) => all
+                .iter()
+                .map(|i| self.to_plutus_redeemer_record(i))
+                .collect(),
+            None => Ok(vec![]),
+        }
+    }
+
+    pub fn collect_plutus_redeemer_records_2(
+        &self,
+        witness_set: &Option<Redeemers>,
     ) -> Result<Vec<PlutusRedeemerRecord>, Error> {
         match &witness_set {
             Some(all) => all
