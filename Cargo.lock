@@ -2243,7 +2243,7 @@ dependencies = [
 [[package]]
 name = "pallas"
 version = "0.18.2"
-source = "git+https://github.com/Emurgo/pallas?tag=conway_4#3f7f11647798b06b8a2c0bfe2428e199d2d491d0"
+source = "git+https://github.com/Emurgo/pallas?tag=conway_6#690ed2844401de96da6b6607def8af304c3ef57a"
 dependencies = [
  "pallas-addresses",
  "pallas-codec",
@@ -2257,7 +2257,7 @@ dependencies = [
 [[package]]
 name = "pallas-addresses"
 version = "0.18.2"
-source = "git+https://github.com/Emurgo/pallas?tag=conway_4#3f7f11647798b06b8a2c0bfe2428e199d2d491d0"
+source = "git+https://github.com/Emurgo/pallas?tag=conway_6#690ed2844401de96da6b6607def8af304c3ef57a"
 dependencies = [
  "base58",
  "bech32",
@@ -2270,7 +2270,7 @@ dependencies = [
 [[package]]
 name = "pallas-codec"
 version = "0.18.2"
-source = "git+https://github.com/Emurgo/pallas?tag=conway_4#3f7f11647798b06b8a2c0bfe2428e199d2d491d0"
+source = "git+https://github.com/Emurgo/pallas?tag=conway_6#690ed2844401de96da6b6607def8af304c3ef57a"
 dependencies = [
  "hex",
  "minicbor",
@@ -2280,7 +2280,7 @@ dependencies = [
 [[package]]
 name = "pallas-crypto"
 version = "0.18.2"
-source = "git+https://github.com/Emurgo/pallas?tag=conway_4#3f7f11647798b06b8a2c0bfe2428e199d2d491d0"
+source = "git+https://github.com/Emurgo/pallas?tag=conway_6#690ed2844401de96da6b6607def8af304c3ef57a"
 dependencies = [
  "cryptoxide",
  "hex",
@@ -2293,7 +2293,7 @@ dependencies = [
 [[package]]
 name = "pallas-miniprotocols"
 version = "0.18.2"
-source = "git+https://github.com/Emurgo/pallas?tag=conway_4#3f7f11647798b06b8a2c0bfe2428e199d2d491d0"
+source = "git+https://github.com/Emurgo/pallas?tag=conway_6#690ed2844401de96da6b6607def8af304c3ef57a"
 dependencies = [
  "hex",
  "itertools",
@@ -2306,7 +2306,7 @@ dependencies = [
 [[package]]
 name = "pallas-multiplexer"
 version = "0.18.2"
-source = "git+https://github.com/Emurgo/pallas?tag=conway_4#3f7f11647798b06b8a2c0bfe2428e199d2d491d0"
+source = "git+https://github.com/Emurgo/pallas?tag=conway_6#690ed2844401de96da6b6607def8af304c3ef57a"
 dependencies = [
  "byteorder 1.4.3",
  "hex",
@@ -2320,7 +2320,7 @@ dependencies = [
 [[package]]
 name = "pallas-primitives"
 version = "0.18.2"
-source = "git+https://github.com/Emurgo/pallas?tag=conway_4#3f7f11647798b06b8a2c0bfe2428e199d2d491d0"
+source = "git+https://github.com/Emurgo/pallas?tag=conway_6#690ed2844401de96da6b6607def8af304c3ef57a"
 dependencies = [
  "base58",
  "bech32",
@@ -2335,7 +2335,7 @@ dependencies = [
 [[package]]
 name = "pallas-traverse"
 version = "0.18.2"
-source = "git+https://github.com/Emurgo/pallas?tag=conway_4#3f7f11647798b06b8a2c0bfe2428e199d2d491d0"
+source = "git+https://github.com/Emurgo/pallas?tag=conway_6#690ed2844401de96da6b6607def8af304c3ef57a"
 dependencies = [
  "hex",
  "pallas-addresses",

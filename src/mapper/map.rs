@@ -297,6 +297,8 @@ impl EventWriter {
                 alonzo::RedeemerTag::Mint => "mint".to_string(),
                 alonzo::RedeemerTag::Cert => "cert".to_string(),
                 alonzo::RedeemerTag::Reward => "reward".to_string(),
+                alonzo::RedeemerTag::Voting => "voting".to_string(),
+                alonzo::RedeemerTag::Proposing => "proposing".to_string(),
             },
             ex_units_mem: redeemer.ex_units.mem,
             ex_units_steps: redeemer.ex_units.steps,
